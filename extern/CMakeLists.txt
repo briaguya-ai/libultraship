@@ -1,28 +1,21 @@
 find_package(OpenGL QUIET)
 
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-    find_package(SDL2 CONFIG REQUIRED)
-elseif (NOT CMAKE_SYSTEM_NAME STREQUAL "Android")
-    find_package(SDL2 REQUIRED)
+################################################################################
+# Find/download SDL3
+################################################################################
+find_package(SDL3 QUIET)
+if (NOT ${SDL3_FOUND})
+    include(FetchContent)
+    FetchContent_Declare(
+        SDL3
+    https://github.com/briaguya-ai/SDL.git
+    GIT_TAG 2b09ae46442b659c4663a0dec9eb94ef3264abf5
+    )
+    message("SDL3 not found. Downloading now...")
+    FetchContent_MakeAvailable(SDL3)
+    message("SDL3 downloaded to " ${FETCHCONTENT_BASE_DIR}/sdl3-src)
 endif()
 
-################################################################################
-# Find/download SDL2 for Android
-################################################################################
-if (CMAKE_SYSTEM_NAME STREQUAL "Android")
-    find_package(SDL2 QUIET)
-    if (NOT ${SDL2_FOUND})
-    	include(FetchContent)
-        FetchContent_Declare(
-            SDL2
-	    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-	    GIT_TAG release-2.28.1 
-    	)
-        message("SDL2 not found. Downloading now...")
-        FetchContent_MakeAvailable(SDL2)
-        message("SDL2 downloaded to " ${FETCHCONTENT_BASE_DIR}/sdl2-src)
-    endif()
-endif()
 
 #=================== DrLibs ===================
 
@@ -93,7 +86,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
     )
 endif()
 
-target_include_directories(ImGui PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/backends PRIVATE ${SDL2_INCLUDE_DIRS})
+target_include_directories(ImGui PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/backends PRIVATE ${SDL3_INCLUDE_DIRS})
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_include_directories(ImGui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/metal-cpp)
@@ -101,11 +94,11 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    target_link_libraries(ImGui PUBLIC SDL2::SDL2 SDL2::SDL2main)
+    target_link_libraries(ImGui PUBLIC SDL3::SDL3 SDL3::SDL3main)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
-    target_link_libraries(ImGui PUBLIC SDL2::SDL2-static)
+    target_link_libraries(ImGui PUBLIC SDL3::SDL3-static)
 else()
-    target_link_libraries(ImGui PUBLIC SDL2::SDL2)
+    target_link_libraries(ImGui PUBLIC SDL3::SDL3)
 endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
