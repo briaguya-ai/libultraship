@@ -48,11 +48,13 @@ if (CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
     target_include_directories(ImGui PRIVATE ${DEVKITPRO}/portlibs/switch/include/)
 endif()
 
-target_sources(ImGui
-    PRIVATE
-    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
-)
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
+    target_sources(ImGui
+        PRIVATE
+        ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+        ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
+    )
+endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_sources(ImGui
@@ -64,6 +66,12 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
     target_sources(ImGui
         PRIVATE
         ${IMGUI_DIR}/backends/imgui_impl_metal.mm
+    )
+elseif (CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
+    target_sources(ImGui
+        PRIVATE
+        ${IMGUI_DIR}/backends/wiiu/imgui_impl_wiiu.cpp
+        ${IMGUI_DIR}/backends/wiiu/imgui_impl_gx2.cpp
     )
 endif()
 
@@ -78,6 +86,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(ImGui PUBLIC SDL2::SDL2 SDL2::SDL2main)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "iOS")
     target_link_libraries(ImGui PUBLIC SDL2::SDL2-static SDL2::SDL2main)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
+    target_link_libraries(ImGui PUBLIC SDL2::SDL2-static)
 else()
     target_link_libraries(ImGui PUBLIC SDL2::SDL2)
 endif()
