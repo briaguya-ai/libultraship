@@ -125,12 +125,6 @@ if (CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
         ${CMAKE_CURRENT_SOURCE_DIR}/port/wiiu/WiiUImpl.h
         ${CMAKE_CURRENT_SOURCE_DIR}/port/wiiu/WiiUImpl.cpp
     )
-elseif (CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
-    set(Source_Files__Port
-        ${CMAKE_CURRENT_SOURCE_DIR}/port/switch/SwitchImpl.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/port/switch/SwitchImpl.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/port/switch/SwitchPerformanceProfiles.h
-    )
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Android" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
     set(Source_Files__Port
         ${CMAKE_CURRENT_SOURCE_DIR}/port/mobile/MobileImpl.h
@@ -220,7 +214,7 @@ endif()
 
 #=================== Linking ===================
 
-if (NOT CMAKE_SYSTEM_NAME STREQUAL "CafeOS" AND NOT CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "CafeOS" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(libultraship PUBLIC "$<LINK_LIBRARY:WHOLE_ARCHIVE,storm>")
 else()
     target_link_libraries(libultraship PUBLIC storm)
@@ -246,7 +240,7 @@ target_link_libraries(libultraship PRIVATE libzip::zip)
 find_package(nlohmann_json REQUIRED)
 target_link_libraries(libultraship PUBLIC nlohmann_json::nlohmann_json)
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
     target_link_libraries(libultraship PRIVATE Threads::Threads)

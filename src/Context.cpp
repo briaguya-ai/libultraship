@@ -13,8 +13,6 @@
 
 #ifdef __APPLE__
 #include "utils/AppleFolderManager.h"
-#elif defined(__SWITCH__)
-#include "port/switch/SwitchImpl.h"
 #elif defined(__WIIU__)
 #include "port/wiiu/WiiUImpl.h"
 #endif
@@ -208,9 +206,7 @@ void Context::InitResourceManager(const std::vector<std::string>& otrFiles,
     }
 
     if (!GetResourceManager()->DidLoadSuccessfully()) {
-#if defined(__SWITCH__)
-        printf("Main OTR file not found!\n");
-#elif defined(__WIIU__)
+#if defined(__WIIU__)
         Ship::WiiU::ThrowMissingOTR(mMainPath.c_str());
 #else
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "OTR file not found",
@@ -223,9 +219,6 @@ void Context::InitResourceManager(const std::vector<std::string>& otrFiles,
 #endif
         return;
     }
-#ifdef __SWITCH__
-    Ship::Switch::Init(PostInitPhase);
-#endif
 }
 
 void Context::InitControlDeck(std::vector<CONTROLLERBUTTONS_T> additionalBitmasks) {

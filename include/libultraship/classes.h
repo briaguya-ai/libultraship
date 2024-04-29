@@ -38,9 +38,6 @@
 #ifdef __APPLE__
 #include "utils/AppleFolderManager.h"
 #endif
-#ifdef __SWITCH__
-#include "port/switch/SwitchImpl.h"
-#endif
 #ifdef __WIIU__
 #include "port/wiiu/WiiUImpl.h"
 #endif
