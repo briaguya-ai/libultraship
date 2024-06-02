@@ -24,6 +24,8 @@ class InputEditorWindow : public GuiWindow {
     void DrawInputChip(const char* buttonName, ImVec4 color);
     void DrawAnalogPreview(const char* label, ImVec2 stick, float deadzone = 0, bool gyro = false);
     void DrawControllerSchema();
+    void DrawFullContents();
+    void DrawPortTabContents(uint8_t portIndex);
 
   protected:
     void InitElement() override;

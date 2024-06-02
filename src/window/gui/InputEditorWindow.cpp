@@ -1123,105 +1123,109 @@ void InputEditorWindow::DrawLEDDeviceIcons(uint8_t portIndex) {
 
 void InputEditorWindow::DrawPortTab(uint8_t portIndex) {
     if (ImGui::BeginTabItem(StringHelper::Sprintf("Port %d###port%d", portIndex + 1, portIndex).c_str())) {
-        if (ImGui::Button("Clear All")) {
-            ImGui::OpenPopup("Clear All##clearAllPopup");
-        }
-        if (ImGui::BeginPopupModal("Clear All##clearAllPopup", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("This will clear all mappings for port %d.\n\nContinue?", portIndex + 1);
-            if (ImGui::Button("Cancel")) {
-                ImGui::CloseCurrentPopup();
-            }
-            if (ImGui::Button("Clear All")) {
-                Ship::Context::GetInstance()->GetControlDeck()->GetControllerByPort(portIndex)->ClearAllMappings();
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-        DrawSetDefaultsButton(portIndex);
-        if (!Ship::Context::GetInstance()->GetControlDeck()->IsSinglePlayerMappingMode()) {
-            ImGui::SameLine();
-            if (ImGui::Button("Reorder controllers")) {
-                Context::GetInstance()->GetWindow()->GetGui()->GetGuiWindow("Controller Reordering")->Show();
-            }
-        }
-
-        UpdateBitmaskToMappingIds(portIndex);
-        UpdateStickDirectionToMappingIds(portIndex);
-
-        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.133f, 0.133f, 0.133f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-
-        if (ImGui::CollapsingHeader("Buttons", NULL, ImGuiTreeNodeFlags_DefaultOpen)) {
-            DrawButtonDeviceIcons(portIndex, mButtonsBitmasks);
-            DrawButtonLine("A", portIndex, BTN_A, CHIP_COLOR_N64_BLUE);
-            DrawButtonLine("B", portIndex, BTN_B, CHIP_COLOR_N64_GREEN);
-            DrawButtonLine("Start", portIndex, BTN_START, CHIP_COLOR_N64_RED);
-            DrawButtonLine("L", portIndex, BTN_L);
-            DrawButtonLine("R", portIndex, BTN_R);
-            DrawButtonLine("Z", portIndex, BTN_Z);
-            DrawButtonLine(StringHelper::Sprintf("C %s", ICON_FA_ARROW_UP).c_str(), portIndex, BTN_CUP,
-                           CHIP_COLOR_N64_YELLOW);
-            DrawButtonLine(StringHelper::Sprintf("C %s", ICON_FA_ARROW_DOWN).c_str(), portIndex, BTN_CDOWN,
-                           CHIP_COLOR_N64_YELLOW);
-            DrawButtonLine(StringHelper::Sprintf("C %s", ICON_FA_ARROW_LEFT).c_str(), portIndex, BTN_CLEFT,
-                           CHIP_COLOR_N64_YELLOW);
-            DrawButtonLine(StringHelper::Sprintf("C %s", ICON_FA_ARROW_RIGHT).c_str(), portIndex, BTN_CRIGHT,
-                           CHIP_COLOR_N64_YELLOW);
-        } else {
-            DrawButtonDeviceIcons(portIndex, mButtonsBitmasks);
-        }
-
-        if (ImGui::CollapsingHeader("D-Pad", NULL, ImGuiTreeNodeFlags_DefaultOpen)) {
-            DrawButtonDeviceIcons(portIndex, mDpadBitmasks);
-            DrawButtonLine(StringHelper::Sprintf("%s", ICON_FA_ARROW_UP).c_str(), portIndex, BTN_DUP);
-            DrawButtonLine(StringHelper::Sprintf("%s", ICON_FA_ARROW_DOWN).c_str(), portIndex, BTN_DDOWN);
-            DrawButtonLine(StringHelper::Sprintf("%s", ICON_FA_ARROW_LEFT).c_str(), portIndex, BTN_DLEFT);
-            DrawButtonLine(StringHelper::Sprintf("%s", ICON_FA_ARROW_RIGHT).c_str(), portIndex, BTN_DRIGHT);
-        } else {
-            DrawButtonDeviceIcons(portIndex, mDpadBitmasks);
-        }
-
-        if (ImGui::CollapsingHeader("Analog Stick", NULL, ImGuiTreeNodeFlags_DefaultOpen)) {
-            DrawAnalogStickDeviceIcons(portIndex, LEFT_STICK);
-            DrawStickSection(portIndex, LEFT, 0);
-        } else {
-            DrawAnalogStickDeviceIcons(portIndex, LEFT_STICK);
-        }
-
-        if (ImGui::CollapsingHeader("Additional (\"Right\") Stick")) {
-            DrawAnalogStickDeviceIcons(portIndex, RIGHT_STICK);
-            DrawStickSection(portIndex, RIGHT, 1, CHIP_COLOR_N64_YELLOW);
-        } else {
-            DrawAnalogStickDeviceIcons(portIndex, RIGHT_STICK);
-        }
-
-        if (ImGui::CollapsingHeader("Rumble")) {
-            DrawRumbleDeviceIcons(portIndex);
-            DrawRumbleSection(portIndex);
-        } else {
-            DrawRumbleDeviceIcons(portIndex);
-        }
-
-        if (ImGui::CollapsingHeader("Gyro")) {
-            DrawGyroDeviceIcons(portIndex);
-            DrawGyroSection(portIndex);
-        } else {
-            DrawGyroDeviceIcons(portIndex);
-        }
-
-        if (ImGui::CollapsingHeader("LEDs")) {
-            DrawLEDDeviceIcons(portIndex);
-            DrawLEDSection(portIndex);
-        } else {
-            DrawLEDDeviceIcons(portIndex);
-        }
-
-        ImGui::PopStyleColor();
-        ImGui::PopStyleColor();
-        ImGui::PopStyleColor();
+        DrawPortTabContents(portIndex);
         ImGui::EndTabItem();
     }
+}
+
+void InputEditorWindow::DrawPortTabContents(uint8_t portIndex) {
+    if (ImGui::Button("Clear All")) {
+        ImGui::OpenPopup("Clear All##clearAllPopup");
+    }
+    if (ImGui::BeginPopupModal("Clear All##clearAllPopup", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("This will clear all mappings for port %d.\n\nContinue?", portIndex + 1);
+        if (ImGui::Button("Cancel")) {
+            ImGui::CloseCurrentPopup();
+        }
+        if (ImGui::Button("Clear All")) {
+            Ship::Context::GetInstance()->GetControlDeck()->GetControllerByPort(portIndex)->ClearAllMappings();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    DrawSetDefaultsButton(portIndex);
+    if (!Ship::Context::GetInstance()->GetControlDeck()->IsSinglePlayerMappingMode()) {
+        ImGui::SameLine();
+        if (ImGui::Button("Reorder controllers")) {
+            Context::GetInstance()->GetWindow()->GetGui()->GetGuiWindow("Controller Reordering")->Show();
+        }
+    }
+
+    UpdateBitmaskToMappingIds(portIndex);
+    UpdateStickDirectionToMappingIds(portIndex);
+
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.133f, 0.133f, 0.133f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    if (ImGui::CollapsingHeader("Buttons", NULL, ImGuiTreeNodeFlags_DefaultOpen)) {
+        DrawButtonDeviceIcons(portIndex, mButtonsBitmasks);
+        DrawButtonLine("A", portIndex, BTN_A, CHIP_COLOR_N64_BLUE);
+        DrawButtonLine("B", portIndex, BTN_B, CHIP_COLOR_N64_GREEN);
+        DrawButtonLine("Start", portIndex, BTN_START, CHIP_COLOR_N64_RED);
+        DrawButtonLine("L", portIndex, BTN_L);
+        DrawButtonLine("R", portIndex, BTN_R);
+        DrawButtonLine("Z", portIndex, BTN_Z);
+        DrawButtonLine(StringHelper::Sprintf("C %s", ICON_FA_ARROW_UP).c_str(), portIndex, BTN_CUP,
+                        CHIP_COLOR_N64_YELLOW);
+        DrawButtonLine(StringHelper::Sprintf("C %s", ICON_FA_ARROW_DOWN).c_str(), portIndex, BTN_CDOWN,
+                        CHIP_COLOR_N64_YELLOW);
+        DrawButtonLine(StringHelper::Sprintf("C %s", ICON_FA_ARROW_LEFT).c_str(), portIndex, BTN_CLEFT,
+                        CHIP_COLOR_N64_YELLOW);
+        DrawButtonLine(StringHelper::Sprintf("C %s", ICON_FA_ARROW_RIGHT).c_str(), portIndex, BTN_CRIGHT,
+                        CHIP_COLOR_N64_YELLOW);
+    } else {
+        DrawButtonDeviceIcons(portIndex, mButtonsBitmasks);
+    }
+
+    if (ImGui::CollapsingHeader("D-Pad", NULL, ImGuiTreeNodeFlags_DefaultOpen)) {
+        DrawButtonDeviceIcons(portIndex, mDpadBitmasks);
+        DrawButtonLine(StringHelper::Sprintf("%s", ICON_FA_ARROW_UP).c_str(), portIndex, BTN_DUP);
+        DrawButtonLine(StringHelper::Sprintf("%s", ICON_FA_ARROW_DOWN).c_str(), portIndex, BTN_DDOWN);
+        DrawButtonLine(StringHelper::Sprintf("%s", ICON_FA_ARROW_LEFT).c_str(), portIndex, BTN_DLEFT);
+        DrawButtonLine(StringHelper::Sprintf("%s", ICON_FA_ARROW_RIGHT).c_str(), portIndex, BTN_DRIGHT);
+    } else {
+        DrawButtonDeviceIcons(portIndex, mDpadBitmasks);
+    }
+
+    if (ImGui::CollapsingHeader("Analog Stick", NULL, ImGuiTreeNodeFlags_DefaultOpen)) {
+        DrawAnalogStickDeviceIcons(portIndex, LEFT_STICK);
+        DrawStickSection(portIndex, LEFT, 0);
+    } else {
+        DrawAnalogStickDeviceIcons(portIndex, LEFT_STICK);
+    }
+
+    if (ImGui::CollapsingHeader("Additional (\"Right\") Stick")) {
+        DrawAnalogStickDeviceIcons(portIndex, RIGHT_STICK);
+        DrawStickSection(portIndex, RIGHT, 1, CHIP_COLOR_N64_YELLOW);
+    } else {
+        DrawAnalogStickDeviceIcons(portIndex, RIGHT_STICK);
+    }
+
+    if (ImGui::CollapsingHeader("Rumble")) {
+        DrawRumbleDeviceIcons(portIndex);
+        DrawRumbleSection(portIndex);
+    } else {
+        DrawRumbleDeviceIcons(portIndex);
+    }
+
+    if (ImGui::CollapsingHeader("Gyro")) {
+        DrawGyroDeviceIcons(portIndex);
+        DrawGyroSection(portIndex);
+    } else {
+        DrawGyroDeviceIcons(portIndex);
+    }
+
+    if (ImGui::CollapsingHeader("LEDs")) {
+        DrawLEDDeviceIcons(portIndex);
+        DrawLEDSection(portIndex);
+    } else {
+        DrawLEDDeviceIcons(portIndex);
+    }
+
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
 }
 
 void InputEditorWindow::DrawSetDefaultsButton(uint8_t portIndex) {
@@ -1335,14 +1339,18 @@ void InputEditorWindow::DrawDevicesTab() {
     }
 }
 
-void InputEditorWindow::DrawElement() {
-    ImGui::Begin("Controller Configuration", &mIsVisible);
+void InputEditorWindow::DrawFullContents() {
     ImGui::BeginTabBar("##ControllerConfigPortTabs");
     for (uint8_t i = 0; i < 4; i++) {
         DrawPortTab(i);
     }
     DrawDevicesTab();
     ImGui::EndTabBar();
+}
+
+void InputEditorWindow::DrawElement() {
+    ImGui::Begin("Controller Configuration", &mIsVisible);
+    DrawFullContents();
     ImGui::End();
 }
 } // namespace Ship
