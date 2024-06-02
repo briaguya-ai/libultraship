@@ -60,3 +60,18 @@ endif()
 
 # =========== Sources =============
 add_subdirectory("src")
+
+#=================== Packages & Includes ===================
+
+configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/src/install_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/src/install_config.h @ONLY)
+
+target_include_directories(libultraship
+    PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}
+        $<$<BOOL:${GFX_DEBUG_DISASSEMBLER}>:${CMAKE_CURRENT_SOURCE_DIR}/../../ZAPDTR/lib/libgfxd>
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/libultraship
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${ADDITIONAL_LIB_INCLUDES}
+)
