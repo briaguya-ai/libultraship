@@ -284,6 +284,25 @@ int32_t ShipDeviceIndexMappingManager::GetNewSDLDeviceIndexFromShipDeviceIndex(S
 }
 
 void ShipDeviceIndexMappingManager::HandlePhysicalDeviceConnect(int32_t sdlDeviceIndex) {
+    std::string sdlControllerName = SDL_GameControllerNameForIndex(sdlDeviceIndex) != nullptr 
+    ? SDL_GameControllerNameForIndex(sdlDeviceIndex) 
+    : "Unknown SDL Device";
+
+    auto guid = SDL_JoystickGetDeviceGUID(sdlDeviceIndex);
+    char guidString[33]; // SDL_GUID_LENGTH + 1 for null terminator
+    SDL_JoystickGetGUIDString(guid, guidString, sizeof(guidString));
+    uint16_t vendor = 0;
+    uint16_t product = 0;
+    uint16_t version = 0;
+    uint16_t crc16 = 0;
+    SDL_GetJoystickGUIDInfo(guid, &vendor, &product, &version, &crc16);
+    SPDLOG_INFO("Device Connected");
+    SPDLOG_INFO("Guid: {}", guidString);
+    SPDLOG_INFO("Vendor: {:x}", vendor);
+    SPDLOG_INFO("Product: {:x}", product);
+    SPDLOG_INFO("Version: {:x}", version);
+    SPDLOG_INFO("CRC16: {:x}", crc16);
+
     if (!mIsInitialized) {
         return;
     }
