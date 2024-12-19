@@ -297,6 +297,7 @@ void ShipDeviceIndexMappingManager::HandlePhysicalDeviceConnect(int32_t sdlDevic
     uint16_t crc16 = 0;
     SDL_GetJoystickGUIDInfo(guid, &vendor, &product, &version, &crc16);
     SPDLOG_INFO("Device Connected");
+    SPDLOG_INFO("Name: {}", sdlControllerName);
     SPDLOG_INFO("Guid: {}", guidString);
     SPDLOG_INFO("Vendor: {:x}", vendor);
     SPDLOG_INFO("Product: {:x}", product);
