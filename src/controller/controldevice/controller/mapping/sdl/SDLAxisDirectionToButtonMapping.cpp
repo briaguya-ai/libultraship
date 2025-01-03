@@ -24,10 +24,7 @@ void SDLAxisDirectionToButtonMapping::UpdatePad(CONTROLLERBUTTONS_T& padButtons)
 
     const auto axisValue = SDL_GameControllerGetAxis(mController, mControllerAxis);
     int32_t axisThresholdPercentage = 25;
-    auto indexMapping = Context::GetInstance()
-                            ->GetControlDeck()
-                            ->GetDeviceIndexMappingManager()
-                            ->GetDeviceIndexMappingFromShipDeviceIndex(ControllerInputMapping::mShipDeviceIndex);
+    auto indexMapping = ControllerInputMapping::mShipDeviceIndex;
     auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
 
     if (sdlIndexMapping != nullptr) {

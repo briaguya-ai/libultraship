@@ -150,34 +150,56 @@ AxisDirectionMappingFactory::CreateDefaultSDLAxisDirectionMappings(ShipDeviceInd
     return mappings;
 }
 
+/*
+
+    // sdl
+    std::unordered_map<int32_t, SDL_GameController*> sdlControllers;
+    bool result = false;
+    for (auto i = 0; i < SDL_NumJoysticks(); i++) {
+        if (SDL_IsGameController(i)) {
+            sdlControllers[i] = SDL_GameControllerOpen(i);
+        }
+    }
+
+    for (auto [controllerIndex, controller] : sdlControllers) {
+        for (int32_t button = SDL_CONTROLLER_BUTTON_A; button < SDL_CONTROLLER_BUTTON_MAX; button++) {
+            if (SDL_GameControllerGetButton(controller, static_cast<SDL_GameControllerButton>(button))) {
+                if (uuid != "") {
+                    ClearButtonMapping(uuid);
+                    AddButtonMapping(std::make_shared<SDLButtonToButtonMapping>(uuid, bitmask, controllerIndex, button));
+                } else {
+                    AddButtonMapping(std::make_shared<SDLButtonToButtonMapping>(bitmask, controllerIndex, button));
+                }
+                result = true;
+                break;
+            }
+        }
+    }
+
+    for (auto [i, controller] : sdlControllers) {
+        SDL_GameControllerClose(controller);
+    }
+
+    return result;
+
+*/
+
 std::shared_ptr<ControllerAxisDirectionMapping>
 AxisDirectionMappingFactory::CreateAxisDirectionMappingFromSDLInput(uint8_t portIndex, StickIndex stickIndex,
                                                                     Direction direction) {
     std::unordered_map<ShipDeviceIndex, SDL_GameController*> sdlControllers;
     std::shared_ptr<ControllerAxisDirectionMapping> mapping = nullptr;
-    for (auto [lusIndex, indexMapping] :
-         Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-        auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
 
-        if (sdlIndexMapping == nullptr) {
-            // this LUS index isn't mapped to an SDL index
-            continue;lusIndex
+    for (auto i = 0; i < SDL_NumJoysticks(); i++) {
+        if (SDL_IsGameController(i)) {
+            sdlControllers[static_cast<ShipDeviceIndex>(i)] = SDL_GameControllerOpen(i);
         }
-
-        auto sdlIndex = sdlIndexMapping->GetSDLDeviceIndex();
-
-        if (!SDL_IsGameController(sdlIndex)) {
-            // this SDL device isn't a game controller
-            continue;
-        }
-
-        sdlControllers[lusIndex] = SDL_GameControllerOpen(sdlIndex);
     }
 
-    for (auto [lusIndex, controller] : sdlControllers) {
+    for (auto [deviceIndex, controller] : sdlControllers) {
         for (int32_t button = SDL_CONTROLLER_BUTTON_A; button < SDL_CONTROLLER_BUTTON_MAX; button++) {
             if (SDL_GameControllerGetButton(controller, static_cast<SDL_GameControllerButton>(button))) {
-                mapping = std::make_shared<SDLButtonToAxisDirectionMapping>(lusIndex, portIndex, stickIndex, direction,
+                mapping = std::make_shared<SDLButtonToAxisDirectionMapping>(deviceIndex, portIndex, stickIndex, direction,
                                                                             button);
                 break;
             }
@@ -201,7 +223,7 @@ AxisDirectionMappingFactory::CreateAxisDirectionMappingFromSDLInput(uint8_t port
                 continue;
             }
 
-            mapping = std::make_shared<SDLAxisDirectionToAxisDirectionMapping>(lusIndex, portIndex, stickIndex,
+            mapping = std::make_shared<SDLAxisDirectionToAxisDirectionMapping>(deviceIndex, portIndex, stickIndex,
                                                                                direction, axis, axisDirection);
             break;
         }
