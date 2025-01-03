@@ -7,7 +7,6 @@
 #include "public/bridge/consolevariablebridge.h"
 #include "utils/StringHelper.h"
 #include "Context.h"
-#include "controller/deviceindex/ShipDeviceIndexToSDLDeviceIndexMapping.h"
 
 namespace Ship {
 std::shared_ptr<ControllerAxisDirectionMapping>
@@ -96,12 +95,8 @@ AxisDirectionMappingFactory::CreateDefaultKeyboardAxisDirectionMappings(uint8_t 
 std::vector<std::shared_ptr<ControllerAxisDirectionMapping>>
 AxisDirectionMappingFactory::CreateDefaultSDLAxisDirectionMappings(ShipDeviceIndex shipDeviceIndex, uint8_t portIndex,
                                                                    StickIndex stickIndex) {
-    auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(
-        Context::GetInstance()
-            ->GetControlDeck()
-            ->GetDeviceIndexMappingManager()
-            ->GetDeviceIndexMappingFromShipDeviceIndex(shipDeviceIndex));
-    if (sdlIndexMapping == nullptr) {
+    bool isSdlDevice = shipDeviceIndex != ShipDeviceIndex::Keyboard;
+    if (isSdlDevice) {
         return std::vector<std::shared_ptr<ControllerAxisDirectionMapping>>();
     }
 

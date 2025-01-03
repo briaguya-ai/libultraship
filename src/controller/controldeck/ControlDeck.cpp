@@ -8,12 +8,10 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui.h>
-#include "controller/deviceindex/ShipDeviceIndexMappingManager.h"
 
 namespace Ship {
 
 ControlDeck::ControlDeck(std::vector<CONTROLLERBUTTONS_T> additionalBitmasks) : mSinglePlayerMappingMode(false) {
-    mDeviceIndexMappingManager = std::make_shared<ShipDeviceIndexMappingManager>();
 }
 
 ControlDeck::~ControlDeck() {
@@ -76,10 +74,6 @@ void ControlDeck::BlockGameInput(int32_t blockId) {
 
 void ControlDeck::UnblockGameInput(int32_t blockId) {
     mGameInputBlockers.erase(blockId);
-}
-
-std::shared_ptr<ShipDeviceIndexMappingManager> ControlDeck::GetDeviceIndexMappingManager() {
-    return mDeviceIndexMappingManager;
 }
 
 void ControlDeck::SetSinglePlayerMappingMode(bool singlePlayer) {

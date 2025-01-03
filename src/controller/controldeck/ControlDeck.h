@@ -4,7 +4,6 @@
 #include <vector>
 #include <config/Config.h>
 #include "controller/controldevice/controller/mapping/keyboard/KeyboardScancodes.h"
-#include "controller/deviceindex/ShipDeviceIndexMappingManager.h"
 
 namespace Ship {
 
@@ -24,7 +23,6 @@ class ControlDeck {
     void SetSinglePlayerMappingMode(bool singlePlayer);
     bool IsSinglePlayerMappingMode();
     bool ProcessKeyboardEvent(KbEventType eventType, KbScancode scancode);
-    std::shared_ptr<ShipDeviceIndexMappingManager> GetDeviceIndexMappingManager();
 
   protected:
     bool AllGameInputBlocked();
@@ -34,7 +32,6 @@ class ControlDeck {
     uint8_t* mControllerBits = nullptr;
     bool mSinglePlayerMappingMode;
     std::unordered_map<int32_t, bool> mGameInputBlockers;
-    std::shared_ptr<ShipDeviceIndexMappingManager> mDeviceIndexMappingManager;
 };
 } // namespace Ship
 
