@@ -125,7 +125,7 @@ AxisDirectionMappingFactory::CreateAxisDirectionMappingFromSDLInput(uint8_t port
 
         if (sdlIndexMapping == nullptr) {
             // this LUS index isn't mapped to an SDL index
-            continue;
+            continue;lusIndex
         }
 
         auto sdlIndex = sdlIndexMapping->GetSDLDeviceIndex();
