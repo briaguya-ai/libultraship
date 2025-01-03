@@ -1,7 +1,6 @@
 #include "SDLMapping.h"
 #include <spdlog/spdlog.h>
 #include "Context.h"
-#include "controller/deviceindex/ShipDeviceIndexToSDLDeviceIndexMapping.h"
 
 #include "utils/StringHelper.h"
 
@@ -13,19 +12,12 @@ SDLMapping::~SDLMapping() {
 }
 
 bool SDLMapping::OpenController() {
-    auto deviceIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(
-        Context::GetInstance()
-            ->GetControlDeck()
-            ->GetDeviceIndexMappingManager()
-            ->GetDeviceIndexMappingFromShipDeviceIndex(mShipDeviceIndex));
-
-    if (deviceIndexMapping == nullptr) {
-        // we don't have an sdl device for this LUS device index
+    if (!SHIP_DEVICE_INDEX_IS_SDL(mShipDeviceIndex)) {
         mController = nullptr;
         return false;
     }
 
-    const auto newCont = SDL_GameControllerOpen(deviceIndexMapping->GetSDLDeviceIndex());
+    const auto newCont = SDL_GameControllerOpen(mShipDeviceIndex);
 
     // We failed to load the controller
     if (newCont == nullptr) {
@@ -115,25 +107,20 @@ bool SDLMapping::UsesGameCubeLayout() {
 }
 
 int32_t SDLMapping::GetSDLDeviceIndex() {
-    auto deviceIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(
-        Context::GetInstance()
-            ->GetControlDeck()
-            ->GetDeviceIndexMappingManager()
-            ->GetDeviceIndexMappingFromShipDeviceIndex(mShipDeviceIndex));
-
-    if (deviceIndexMapping == nullptr) {
-        // we don't have an sdl device for this LUS device index
+    if (!SHIP_DEVICE_INDEX_IS_SDL(mShipDeviceIndex)) {
         return -1;
     }
 
-    return deviceIndexMapping->GetSDLDeviceIndex();
+    return mShipDeviceIndex;
 }
 
 std::string SDLMapping::GetSDLControllerName() {
-    return Context::GetInstance()
-        ->GetControlDeck()
-        ->GetDeviceIndexMappingManager()
-        ->GetSDLControllerNameFromShipDeviceIndex(mShipDeviceIndex);
+    // todo
+    // return Context::GetInstance()
+    //     ->GetControlDeck()
+    //     ->GetDeviceIndexMappingManager()
+    //     ->GetSDLControllerNameFromShipDeviceIndex(mShipDeviceIndex);
+    return "todo";
 }
 
 std::string SDLMapping::GetSDLDeviceName() {

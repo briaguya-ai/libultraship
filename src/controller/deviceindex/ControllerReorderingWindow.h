@@ -24,6 +24,9 @@ class ControllerReorderingWindow : public GuiWindow {
     void UpdateElement() override;
 
   private:
+    void InitializeSDLMappingsForPort(uint8_t n64port, int32_t sdlIndex);
+    void InitializeMappingsSinglePlayer();
+
     int32_t GetSDLIndexFromSDLInput();
     std::vector<int32_t> mDeviceIndices;
     uint8_t mCurrentPortNumber;

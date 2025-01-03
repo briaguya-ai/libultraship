@@ -56,6 +56,48 @@ int32_t ControllerReorderingWindow::GetSDLIndexFromSDLInput() {
     return sdlDeviceIndex;
 }
 
+// void ControllerReorderingWindow::InitializeSDLMappingsForPort(uint8_t n64port, int32_t sdlIndex) {
+//     if (!SDL_IsGameController(sdlIndex)) {
+//         return;
+//     }
+
+//     // todo: figure out how to handle names
+//     // std::string sdlControllerName = SDL_GameControllerNameForIndex(sdlIndex) != nullptr
+//     //                                     ? SDL_GameControllerNameForIndex(sdlIndex)
+//     //                                     : "Game Controller";
+
+//     // if we have mappings for this device on this port, we're good and don't need to add any mappings
+//     if (Context::GetInstance()->GetControlDeck()->GetControllerByPort(n64port)->HasMappingsForShipDeviceIndex(
+//         static_cast<ShipDeviceIndex>(sdlIndex))) {
+//         return;
+//     }
+
+//     // we don't have mappings, add defaults
+//     Context::GetInstance()->GetControlDeck()->GetControllerByPort(n64port)->AddDefaultMappings(static_cast<ShipDeviceIndex>(sdlIndex));
+// }
+
+// void ControllerReorderingWindow::InitializeMappingsSinglePlayer() {
+//     for (auto mapping : Context::GetInstance()->GetControlDeck()->GetControllerByPort(0)->GetAllMappings()) {
+//         auto sdlMapping = std::dynamic_pointer_cast<SDLMapping>(mapping);
+//         if (sdlMapping == nullptr) {
+//             continue;
+//         }
+
+//         sdlMapping->CloseController();
+//     }
+
+//     std::vector<int32_t> connectedSdlControllerIndices;
+//     for (auto i = 0; i < SDL_NumJoysticks(); i++) {
+//         if (SDL_IsGameController(i)) {
+//             connectedSdlControllerIndices.push_back(i);
+//         }
+//     }
+
+//     for (auto sdlIndex : connectedSdlControllerIndices) {
+//         InitializeSDLMappingsForPort(0, sdlIndex);
+//     }
+// }
+
 void ControllerReorderingWindow::DrawElement() {
     if (Context::GetInstance()->GetControlDeck()->IsSinglePlayerMappingMode()) {
         Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->InitializeMappingsSinglePlayer();

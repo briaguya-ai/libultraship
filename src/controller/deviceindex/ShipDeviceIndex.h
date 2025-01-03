@@ -2,7 +2,7 @@
 
 namespace Ship {
 
-#define SHIPDK_DEVICE_INDEX_VALUES \
+#define SHIP_DEVICE_INDEX_VALUES \
     X(Mouse, -2)                   \
     X(Keyboard, -1)                \
     X(Blue, 0)                     \
@@ -48,7 +48,11 @@ namespace Ship {
     X(Max, 40)
 
 #define X(name, value) name = value,
-enum ShipDeviceIndex { SHIPDK_DEVICE_INDEX_VALUES };
+enum ShipDeviceIndex { SHIP_DEVICE_INDEX_VALUES };
 #undef X
+
+#define SHIP_DEVICE_INDEX_IS_MOUSE(index) index == ShipDeviceIndex::Mouse
+#define SHIP_DEVICE_INDEX_IS_KEYBOARD(index) index == ShipDeviceIndex::Keyboard
+#define SHIP_DEVICE_INDEX_IS_SDL(index) index >= 0
 
 } // namespace Ship

@@ -309,125 +309,126 @@ void InputEditorWindow::DrawButtonLineEditMappingButton(uint8_t port, CONTROLLER
     ImGui::SameLine(0, 0);
 
     auto sdlAxisDirectionToButtonMapping = std::dynamic_pointer_cast<SDLAxisDirectionToButtonMapping>(mapping);
-    auto indexMapping = Context::GetInstance()
-                            ->GetControlDeck()
-                            ->GetDeviceIndexMappingManager()
-                            ->GetDeviceIndexMappingFromShipDeviceIndex(mapping->GetShipDeviceIndex());
-    auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
+    // todo: use SDLDeviceWideSettings for this
+    // auto indexMapping = Context::GetInstance()
+    //                         ->GetControlDeck()
+    //                         ->GetDeviceIndexMappingManager()
+    //                         ->GetDeviceIndexMappingFromShipDeviceIndex(mapping->GetShipDeviceIndex());
+    // auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
 
-    if (sdlIndexMapping != nullptr && sdlAxisDirectionToButtonMapping != nullptr) {
-        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
-        auto buttonColor = ImGui::GetStyleColorVec4(ImGuiCol_Button);
-        auto buttonHoveredColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered);
-        GetButtonColorsForShipDeviceIndex(mapping->GetShipDeviceIndex(), buttonColor, buttonHoveredColor);
-        ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoveredColor);
-        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
-        auto popupId = StringHelper::Sprintf("editAxisThresholdPopup##%s", id.c_str());
-        if (ImGui::Button(StringHelper::Sprintf("%s###editAxisThresholdButton%s", ICON_FA_COG, id.c_str()).c_str(),
-                          ImVec2(ImGui::CalcTextSize(ICON_FA_COG).x + SCALE_IMGUI_SIZE(10.0f), 0.0f))) {
-            ImGui::OpenPopup(popupId.c_str());
-            OffsetMappingPopup();
-        }
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay)) {
-            ImGui::SetTooltip("Edit axis threshold");
-        }
-        ImGui::PopStyleColor();
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
+    // if (sdlIndexMapping != nullptr && sdlAxisDirectionToButtonMapping != nullptr) {
+    //     ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
+    //     auto buttonColor = ImGui::GetStyleColorVec4(ImGuiCol_Button);
+    //     auto buttonHoveredColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered);
+    //     GetButtonColorsForShipDeviceIndex(mapping->GetShipDeviceIndex(), buttonColor, buttonHoveredColor);
+    //     ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+    //     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoveredColor);
+    //     ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
+    //     auto popupId = StringHelper::Sprintf("editAxisThresholdPopup##%s", id.c_str());
+    //     if (ImGui::Button(StringHelper::Sprintf("%s###editAxisThresholdButton%s", ICON_FA_COG, id.c_str()).c_str(),
+    //                       ImVec2(ImGui::CalcTextSize(ICON_FA_COG).x + SCALE_IMGUI_SIZE(10.0f), 0.0f))) {
+    //         ImGui::OpenPopup(popupId.c_str());
+    //         OffsetMappingPopup();
+    //     }
+    //     if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay)) {
+    //         ImGui::SetTooltip("Edit axis threshold");
+    //     }
+    //     ImGui::PopStyleColor();
+    //     ImGui::PopStyleColor();
+    //     ImGui::PopStyleVar();
 
-        if (ImGui::BeginPopup(popupId.c_str())) {
-            mInputEditorPopupOpen = true;
-            ImGui::Text("Axis Threshold\n\nThe extent to which the joystick\nmust be moved or the trigger\npressed to "
-                        "initiate the assigned\nbutton action.\n\n");
+    //     if (ImGui::BeginPopup(popupId.c_str())) {
+    //         mInputEditorPopupOpen = true;
+    //         ImGui::Text("Axis Threshold\n\nThe extent to which the joystick\nmust be moved or the trigger\npressed to "
+    //                     "initiate the assigned\nbutton action.\n\n");
 
-            if (sdlAxisDirectionToButtonMapping->AxisIsStick()) {
-                ImGui::Text("Stick axis threshold:");
+    //         if (sdlAxisDirectionToButtonMapping->AxisIsStick()) {
+    //             ImGui::Text("Stick axis threshold:");
 
-                int32_t stickAxisThreshold = sdlIndexMapping->GetStickAxisThresholdPercentage();
-                if (stickAxisThreshold == 0) {
-                    ImGui::BeginDisabled();
-                }
-                ImGui::PushButtonRepeat(true);
-                if (ImGui::Button(StringHelper::Sprintf("-##Stick Axis Threshold%s", id.c_str()).c_str())) {
-                    sdlIndexMapping->SetStickAxisThresholdPercentage(stickAxisThreshold - 1);
-                    sdlIndexMapping->SaveToConfig();
-                }
-                ImGui::PopButtonRepeat();
-                if (stickAxisThreshold == 0) {
-                    ImGui::EndDisabled();
-                }
-                ImGui::SameLine(0.0f, 0.0f);
-                ImGui::SetNextItemWidth(SCALE_IMGUI_SIZE(160.0f));
-                if (ImGui::SliderInt(StringHelper::Sprintf("##Stick Axis Threshold%s", id.c_str()).c_str(),
-                                     &stickAxisThreshold, 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp)) {
-                    sdlIndexMapping->SetStickAxisThresholdPercentage(stickAxisThreshold);
-                    sdlIndexMapping->SaveToConfig();
-                }
-                ImGui::SameLine(0.0f, 0.0f);
-                if (stickAxisThreshold == 100) {
-                    ImGui::BeginDisabled();
-                }
-                ImGui::PushButtonRepeat(true);
-                if (ImGui::Button(StringHelper::Sprintf("+##Stick Axis Threshold%s", id.c_str()).c_str())) {
-                    sdlIndexMapping->SetStickAxisThresholdPercentage(stickAxisThreshold + 1);
-                    sdlIndexMapping->SaveToConfig();
-                }
-                ImGui::PopButtonRepeat();
-                if (stickAxisThreshold == 100) {
-                    ImGui::EndDisabled();
-                }
-            }
+    //             int32_t stickAxisThreshold = sdlIndexMapping->GetStickAxisThresholdPercentage();
+    //             if (stickAxisThreshold == 0) {
+    //                 ImGui::BeginDisabled();
+    //             }
+    //             ImGui::PushButtonRepeat(true);
+    //             if (ImGui::Button(StringHelper::Sprintf("-##Stick Axis Threshold%s", id.c_str()).c_str())) {
+    //                 sdlIndexMapping->SetStickAxisThresholdPercentage(stickAxisThreshold - 1);
+    //                 sdlIndexMapping->SaveToConfig();
+    //             }
+    //             ImGui::PopButtonRepeat();
+    //             if (stickAxisThreshold == 0) {
+    //                 ImGui::EndDisabled();
+    //             }
+    //             ImGui::SameLine(0.0f, 0.0f);
+    //             ImGui::SetNextItemWidth(SCALE_IMGUI_SIZE(160.0f));
+    //             if (ImGui::SliderInt(StringHelper::Sprintf("##Stick Axis Threshold%s", id.c_str()).c_str(),
+    //                                  &stickAxisThreshold, 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp)) {
+    //                 sdlIndexMapping->SetStickAxisThresholdPercentage(stickAxisThreshold);
+    //                 sdlIndexMapping->SaveToConfig();
+    //             }
+    //             ImGui::SameLine(0.0f, 0.0f);
+    //             if (stickAxisThreshold == 100) {
+    //                 ImGui::BeginDisabled();
+    //             }
+    //             ImGui::PushButtonRepeat(true);
+    //             if (ImGui::Button(StringHelper::Sprintf("+##Stick Axis Threshold%s", id.c_str()).c_str())) {
+    //                 sdlIndexMapping->SetStickAxisThresholdPercentage(stickAxisThreshold + 1);
+    //                 sdlIndexMapping->SaveToConfig();
+    //             }
+    //             ImGui::PopButtonRepeat();
+    //             if (stickAxisThreshold == 100) {
+    //                 ImGui::EndDisabled();
+    //             }
+    //         }
 
-            if (sdlAxisDirectionToButtonMapping->AxisIsTrigger()) {
-                ImGui::Text("Trigger axis threshold:");
+    //         if (sdlAxisDirectionToButtonMapping->AxisIsTrigger()) {
+    //             ImGui::Text("Trigger axis threshold:");
 
-                int32_t triggerAxisThreshold = sdlIndexMapping->GetTriggerAxisThresholdPercentage();
-                if (triggerAxisThreshold == 0) {
-                    ImGui::BeginDisabled();
-                }
-                ImGui::PushButtonRepeat(true);
-                if (ImGui::Button(StringHelper::Sprintf("-##Trigger Axis Threshold%s", id.c_str()).c_str())) {
-                    sdlIndexMapping->SetTriggerAxisThresholdPercentage(triggerAxisThreshold - 1);
-                    sdlIndexMapping->SaveToConfig();
-                }
-                ImGui::PopButtonRepeat();
-                if (triggerAxisThreshold == 0) {
-                    ImGui::EndDisabled();
-                }
-                ImGui::SameLine(0.0f, 0.0f);
-                ImGui::SetNextItemWidth(SCALE_IMGUI_SIZE(160.0f));
-                if (ImGui::SliderInt(StringHelper::Sprintf("##Trigger Axis Threshold%s", id.c_str()).c_str(),
-                                     &triggerAxisThreshold, 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp)) {
-                    sdlIndexMapping->SetTriggerAxisThresholdPercentage(triggerAxisThreshold);
-                    sdlIndexMapping->SaveToConfig();
-                }
-                ImGui::SameLine(0.0f, 0.0f);
-                if (triggerAxisThreshold == 100) {
-                    ImGui::BeginDisabled();
-                }
-                ImGui::PushButtonRepeat(true);
-                if (ImGui::Button(StringHelper::Sprintf("+##Trigger Axis Threshold%s", id.c_str()).c_str())) {
-                    sdlIndexMapping->SetTriggerAxisThresholdPercentage(triggerAxisThreshold + 1);
-                    sdlIndexMapping->SaveToConfig();
-                }
-                ImGui::PopButtonRepeat();
-                if (triggerAxisThreshold == 100) {
-                    ImGui::EndDisabled();
-                }
-            }
+    //             int32_t triggerAxisThreshold = sdlIndexMapping->GetTriggerAxisThresholdPercentage();
+    //             if (triggerAxisThreshold == 0) {
+    //                 ImGui::BeginDisabled();
+    //             }
+    //             ImGui::PushButtonRepeat(true);
+    //             if (ImGui::Button(StringHelper::Sprintf("-##Trigger Axis Threshold%s", id.c_str()).c_str())) {
+    //                 sdlIndexMapping->SetTriggerAxisThresholdPercentage(triggerAxisThreshold - 1);
+    //                 sdlIndexMapping->SaveToConfig();
+    //             }
+    //             ImGui::PopButtonRepeat();
+    //             if (triggerAxisThreshold == 0) {
+    //                 ImGui::EndDisabled();
+    //             }
+    //             ImGui::SameLine(0.0f, 0.0f);
+    //             ImGui::SetNextItemWidth(SCALE_IMGUI_SIZE(160.0f));
+    //             if (ImGui::SliderInt(StringHelper::Sprintf("##Trigger Axis Threshold%s", id.c_str()).c_str(),
+    //                                  &triggerAxisThreshold, 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp)) {
+    //                 sdlIndexMapping->SetTriggerAxisThresholdPercentage(triggerAxisThreshold);
+    //                 sdlIndexMapping->SaveToConfig();
+    //             }
+    //             ImGui::SameLine(0.0f, 0.0f);
+    //             if (triggerAxisThreshold == 100) {
+    //                 ImGui::BeginDisabled();
+    //             }
+    //             ImGui::PushButtonRepeat(true);
+    //             if (ImGui::Button(StringHelper::Sprintf("+##Trigger Axis Threshold%s", id.c_str()).c_str())) {
+    //                 sdlIndexMapping->SetTriggerAxisThresholdPercentage(triggerAxisThreshold + 1);
+    //                 sdlIndexMapping->SaveToConfig();
+    //             }
+    //             ImGui::PopButtonRepeat();
+    //             if (triggerAxisThreshold == 100) {
+    //                 ImGui::EndDisabled();
+    //             }
+    //         }
 
-            if (ImGui::Button("Close")) {
-                mInputEditorPopupOpen = false;
-                ImGui::CloseCurrentPopup();
-            }
+    //         if (ImGui::Button("Close")) {
+    //             mInputEditorPopupOpen = false;
+    //             ImGui::CloseCurrentPopup();
+    //         }
 
-            ImGui::EndPopup();
-        }
+    //         ImGui::EndPopup();
+    //     }
 
-        ImGui::PopStyleVar();
-        ImGui::SameLine(0, 0);
-    }
+    //     ImGui::PopStyleVar();
+    //     ImGui::SameLine(0, 0);
+    // }
 
     ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoveredColor);
@@ -1199,12 +1200,13 @@ void InputEditorWindow::DrawButtonDeviceIcons(uint8_t portIndex, std::set<CONTRO
     std::set<ShipDeviceIndex> allLusDeviceIndices;
     allLusDeviceIndices.insert(ShipDeviceIndex::Keyboard);
     allLusDeviceIndices.insert(ShipDeviceIndex::Mouse);
-    for (auto [lusIndex, mapping] : Context::GetInstance()
-                                        ->GetControlDeck()
-                                        ->GetDeviceIndexMappingManager()
-                                        ->GetAllDeviceIndexMappingsFromConfig()) {
-        allLusDeviceIndices.insert(lusIndex);
-    }
+    // todo
+    // for (auto [lusIndex, mapping] : Context::GetInstance()
+    //                                     ->GetControlDeck()
+    //                                     ->GetDeviceIndexMappingManager()
+    //                                     ->GetAllDeviceIndexMappingsFromConfig()) {
+    //     allLusDeviceIndices.insert(lusIndex);
+    // }
 
     std::vector<std::pair<ShipDeviceIndex, bool>> lusDeviceIndiciesWithMappings;
     for (auto lusIndex : allLusDeviceIndices) {
@@ -1248,12 +1250,13 @@ void InputEditorWindow::DrawAnalogStickDeviceIcons(uint8_t portIndex, StickIndex
     std::set<ShipDeviceIndex> allLusDeviceIndices;
     allLusDeviceIndices.insert(ShipDeviceIndex::Keyboard);
     allLusDeviceIndices.insert(ShipDeviceIndex::Mouse);
-    for (auto [lusIndex, mapping] : Context::GetInstance()
-                                        ->GetControlDeck()
-                                        ->GetDeviceIndexMappingManager()
-                                        ->GetAllDeviceIndexMappingsFromConfig()) {
-        allLusDeviceIndices.insert(lusIndex);
-    }
+    // todo
+    // for (auto [lusIndex, mapping] : Context::GetInstance()
+    //                                     ->GetControlDeck()
+    //                                     ->GetDeviceIndexMappingManager()
+    //                                     ->GetAllDeviceIndexMappingsFromConfig()) {
+    //     allLusDeviceIndices.insert(lusIndex);
+    // }
 
     std::vector<std::pair<ShipDeviceIndex, bool>> lusDeviceIndiciesWithMappings;
     for (auto lusIndex : allLusDeviceIndices) {
@@ -1298,12 +1301,13 @@ void InputEditorWindow::DrawAnalogStickDeviceIcons(uint8_t portIndex, StickIndex
 
 void InputEditorWindow::DrawRumbleDeviceIcons(uint8_t portIndex) {
     std::set<ShipDeviceIndex> allLusDeviceIndices;
-    for (auto [lusIndex, mapping] : Context::GetInstance()
-                                        ->GetControlDeck()
-                                        ->GetDeviceIndexMappingManager()
-                                        ->GetAllDeviceIndexMappingsFromConfig()) {
-        allLusDeviceIndices.insert(lusIndex);
-    }
+    // todo
+    // for (auto [lusIndex, mapping] : Context::GetInstance()
+    //                                     ->GetControlDeck()
+    //                                     ->GetDeviceIndexMappingManager()
+    //                                     ->GetAllDeviceIndexMappingsFromConfig()) {
+    //     allLusDeviceIndices.insert(lusIndex);
+    // }
 
     std::vector<std::pair<ShipDeviceIndex, bool>> lusDeviceIndiciesWithMappings;
     for (auto lusIndex : allLusDeviceIndices) {
@@ -1359,12 +1363,13 @@ void InputEditorWindow::DrawGyroDeviceIcons(uint8_t portIndex) {
 
 void InputEditorWindow::DrawLEDDeviceIcons(uint8_t portIndex) {
     std::set<ShipDeviceIndex> allLusDeviceIndices;
-    for (auto [lusIndex, mapping] : Context::GetInstance()
-                                        ->GetControlDeck()
-                                        ->GetDeviceIndexMappingManager()
-                                        ->GetAllDeviceIndexMappingsFromConfig()) {
-        allLusDeviceIndices.insert(lusIndex);
-    }
+    // todo
+    // for (auto [lusIndex, mapping] : Context::GetInstance()
+    //                                     ->GetControlDeck()
+    //                                     ->GetDeviceIndexMappingManager()
+    //                                     ->GetAllDeviceIndexMappingsFromConfig()) {
+    //     allLusDeviceIndices.insert(lusIndex);
+    // }
 
     std::vector<std::pair<ShipDeviceIndex, bool>> lusDeviceIndiciesWithMappings;
     for (auto lusIndex : allLusDeviceIndices) {
@@ -1401,78 +1406,79 @@ void InputEditorWindow::DrawLEDDeviceIcons(uint8_t portIndex) {
 }
 
 void InputEditorWindow::DrawDeviceVisibilityButtons() {
-    std::map<ShipDeviceIndex, std::pair<std::string, int32_t>> indexMappings;
-    for (auto [lusIndex, mapping] : Context::GetInstance()
-                                        ->GetControlDeck()
-                                        ->GetDeviceIndexMappingManager()
-                                        ->GetAllDeviceIndexMappingsFromConfig()) {
-        auto sdlIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
-        if (sdlIndexMapping == nullptr) {
-            continue;
-        }
+    // todo
+    // std::map<ShipDeviceIndex, std::pair<std::string, int32_t>> indexMappings;
+    // for (auto [lusIndex, mapping] : Context::GetInstance()
+    //                                     ->GetControlDeck()
+    //                                     ->GetDeviceIndexMappingManager()
+    //                                     ->GetAllDeviceIndexMappingsFromConfig()) {
+    //     auto sdlIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
+    //     if (sdlIndexMapping == nullptr) {
+    //         continue;
+    //     }
 
-        indexMappings[lusIndex] = { sdlIndexMapping->GetSDLControllerName(), -1 };
-    }
+    //     indexMappings[lusIndex] = { sdlIndexMapping->GetSDLControllerName(), -1 };
+    // }
 
-    for (auto [lusIndex, mapping] :
-         Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-        auto sdlIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
-        if (sdlIndexMapping == nullptr) {
-            continue;
-        }
+    // for (auto [lusIndex, mapping] :
+    //      Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
+    //     auto sdlIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
+    //     if (sdlIndexMapping == nullptr) {
+    //         continue;
+    //     }
 
-        indexMappings[lusIndex] = { sdlIndexMapping->GetSDLControllerName(), sdlIndexMapping->GetSDLDeviceIndex() };
-    }
+    //     indexMappings[lusIndex] = { sdlIndexMapping->GetSDLControllerName(), sdlIndexMapping->GetSDLDeviceIndex() };
+    // }
 
-    auto keyboardButtonColor = ImGui::GetStyleColorVec4(ImGuiCol_Button);
-    auto keyboardButtonHoveredColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered);
-    GetButtonColorsForShipDeviceIndex(ShipDeviceIndex::Keyboard, keyboardButtonColor, keyboardButtonHoveredColor);
-    ImGui::PushStyleColor(ImGuiCol_Button, keyboardButtonColor);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, keyboardButtonHoveredColor);
-    bool keyboardVisible = mDeviceIndexVisiblity[ShipDeviceIndex::Keyboard];
-    if (ImGui::Button(StringHelper::Sprintf("%s %s Keyboard", keyboardVisible ? ICON_FA_EYE : ICON_FA_EYE_SLASH,
-                                            ICON_FA_KEYBOARD_O)
-                          .c_str())) {
-        mDeviceIndexVisiblity[ShipDeviceIndex::Keyboard] = !keyboardVisible;
-    }
-    ImGui::PopStyleColor();
-    ImGui::PopStyleColor();
+    // auto keyboardButtonColor = ImGui::GetStyleColorVec4(ImGuiCol_Button);
+    // auto keyboardButtonHoveredColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered);
+    // GetButtonColorsForShipDeviceIndex(ShipDeviceIndex::Keyboard, keyboardButtonColor, keyboardButtonHoveredColor);
+    // ImGui::PushStyleColor(ImGuiCol_Button, keyboardButtonColor);
+    // ImGui::PushStyleColor(ImGuiCol_ButtonHovered, keyboardButtonHoveredColor);
+    // bool keyboardVisible = mDeviceIndexVisiblity[ShipDeviceIndex::Keyboard];
+    // if (ImGui::Button(StringHelper::Sprintf("%s %s Keyboard", keyboardVisible ? ICON_FA_EYE : ICON_FA_EYE_SLASH,
+    //                                         ICON_FA_KEYBOARD_O)
+    //                       .c_str())) {
+    //     mDeviceIndexVisiblity[ShipDeviceIndex::Keyboard] = !keyboardVisible;
+    // }
+    // ImGui::PopStyleColor();
+    // ImGui::PopStyleColor();
 
-    auto mouseButtonColor = ImGui::GetStyleColorVec4(ImGuiCol_Button);
-    auto mouseButtonHoveredColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered);
-    GetButtonColorsForShipDeviceIndex(ShipDeviceIndex::Mouse, mouseButtonColor, mouseButtonHoveredColor);
-    ImGui::PushStyleColor(ImGuiCol_Button, mouseButtonColor);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, mouseButtonHoveredColor);
-    bool mouseVisible = mDeviceIndexVisiblity[ShipDeviceIndex::Mouse];
-    if (ImGui::Button(
-            StringHelper::Sprintf("%s %s mouse", mouseVisible ? ICON_FA_EYE : ICON_FA_EYE_SLASH, ICON_FA_KEYBOARD_O)
-                .c_str())) {
-        mDeviceIndexVisiblity[ShipDeviceIndex::Mouse] = !mouseVisible;
-    }
-    ImGui::PopStyleColor();
-    ImGui::PopStyleColor();
+    // auto mouseButtonColor = ImGui::GetStyleColorVec4(ImGuiCol_Button);
+    // auto mouseButtonHoveredColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered);
+    // GetButtonColorsForShipDeviceIndex(ShipDeviceIndex::Mouse, mouseButtonColor, mouseButtonHoveredColor);
+    // ImGui::PushStyleColor(ImGuiCol_Button, mouseButtonColor);
+    // ImGui::PushStyleColor(ImGuiCol_ButtonHovered, mouseButtonHoveredColor);
+    // bool mouseVisible = mDeviceIndexVisiblity[ShipDeviceIndex::Mouse];
+    // if (ImGui::Button(
+    //         StringHelper::Sprintf("%s %s mouse", mouseVisible ? ICON_FA_EYE : ICON_FA_EYE_SLASH, ICON_FA_KEYBOARD_O)
+    //             .c_str())) {
+    //     mDeviceIndexVisiblity[ShipDeviceIndex::Mouse] = !mouseVisible;
+    // }
+    // ImGui::PopStyleColor();
+    // ImGui::PopStyleColor();
 
-    for (auto [lusIndex, info] : indexMappings) {
-        auto [name, sdlIndex] = info;
-        bool connected = sdlIndex != -1;
+    // for (auto [lusIndex, info] : indexMappings) {
+    //     auto [name, sdlIndex] = info;
+    //     bool connected = sdlIndex != -1;
 
-        auto buttonColor = ImGui::GetStyleColorVec4(ImGuiCol_Button);
-        auto buttonHoveredColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered);
-        GetButtonColorsForShipDeviceIndex(lusIndex, buttonColor, buttonHoveredColor);
+    //     auto buttonColor = ImGui::GetStyleColorVec4(ImGuiCol_Button);
+    //     auto buttonHoveredColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered);
+    //     GetButtonColorsForShipDeviceIndex(lusIndex, buttonColor, buttonHoveredColor);
 
-        ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoveredColor);
-        bool visible = mDeviceIndexVisiblity[lusIndex];
-        if (ImGui::Button(
-                StringHelper::Sprintf("%s %s %s (%s)", visible ? ICON_FA_EYE : ICON_FA_EYE_SLASH,
-                                      connected ? ICON_FA_GAMEPAD : ICON_FA_CHAIN_BROKEN, name.c_str(),
-                                      connected ? StringHelper::Sprintf("SDL %d", sdlIndex).c_str() : "Disconnected")
-                    .c_str())) {
-            mDeviceIndexVisiblity[lusIndex] = !visible;
-        }
-        ImGui::PopStyleColor();
-        ImGui::PopStyleColor();
-    }
+    //     ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+    //     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoveredColor);
+    //     bool visible = mDeviceIndexVisiblity[lusIndex];
+    //     if (ImGui::Button(
+    //             StringHelper::Sprintf("%s %s %s (%s)", visible ? ICON_FA_EYE : ICON_FA_EYE_SLASH,
+    //                                   connected ? ICON_FA_GAMEPAD : ICON_FA_CHAIN_BROKEN, name.c_str(),
+    //                                   connected ? StringHelper::Sprintf("SDL %d", sdlIndex).c_str() : "Disconnected")
+    //                 .c_str())) {
+    //         mDeviceIndexVisiblity[lusIndex] = !visible;
+    //     }
+    //     ImGui::PopStyleColor();
+    //     ImGui::PopStyleColor();
+    // }
 }
 
 void InputEditorWindow::DrawClearAllButton(uint8_t portIndex) {
@@ -1593,15 +1599,16 @@ void InputEditorWindow::DrawSetDefaultsButton(uint8_t portIndex) {
 
     if (ImGui::BeginPopup(popupId.c_str())) {
         std::map<ShipDeviceIndex, std::pair<std::string, int32_t>> indexMappings;
-        for (auto [lusIndex, mapping] :
-             Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-            auto sdlIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
-            if (sdlIndexMapping == nullptr) {
-                continue;
-            }
+        // todo
+        // for (auto [lusIndex, mapping] :
+        //      Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
+        //     auto sdlIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
+        //     if (sdlIndexMapping == nullptr) {
+        //         continue;
+        //     }
 
-            indexMappings[lusIndex] = { sdlIndexMapping->GetSDLControllerName(), sdlIndexMapping->GetSDLDeviceIndex() };
-        }
+        //     indexMappings[lusIndex] = { sdlIndexMapping->GetSDLControllerName(), sdlIndexMapping->GetSDLDeviceIndex() };
+        // }
 
         bool shouldClose = false;
         ImGui::PushStyleColor(ImGuiCol_Button, BUTTON_COLOR_KEYBOARD_BEIGE);

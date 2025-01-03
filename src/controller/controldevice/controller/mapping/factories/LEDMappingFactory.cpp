@@ -4,7 +4,6 @@
 #include "utils/StringHelper.h"
 #include "libultraship/libultra/controller.h"
 #include "Context.h"
-#include "controller/deviceindex/ShipDeviceIndexToSDLDeviceIndexMapping.h"
 
 namespace Ship {
 std::shared_ptr<ControllerLEDMapping> LEDMappingFactory::CreateLEDMappingFromConfig(uint8_t portIndex, std::string id) {
@@ -45,34 +44,24 @@ std::shared_ptr<ControllerLEDMapping> LEDMappingFactory::CreateLEDMappingFromCon
 std::shared_ptr<ControllerLEDMapping> LEDMappingFactory::CreateLEDMappingFromSDLInput(uint8_t portIndex) {
     std::unordered_map<ShipDeviceIndex, SDL_GameController*> sdlControllersWithLEDs;
     std::shared_ptr<ControllerLEDMapping> mapping = nullptr;
-    for (auto [lusIndex, indexMapping] :
-         Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-        auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
-
-        if (sdlIndexMapping == nullptr) {
-            // this LUS index isn't mapped to an SDL index
-            continue;
-        }
-
-        auto sdlIndex = sdlIndexMapping->GetSDLDeviceIndex();
-
-        if (!SDL_IsGameController(sdlIndex)) {
-            // this SDL device isn't a game controller
-            continue;
-        }
-
-        auto controller = SDL_GameControllerOpen(sdlIndex);
-        if (SDL_GameControllerHasLED(controller)) {
-            sdlControllersWithLEDs[lusIndex] = SDL_GameControllerOpen(sdlIndex);
-        } else {
-            SDL_GameControllerClose(controller);
+    
+    for (auto i = 0; i < SDL_NumJoysticks(); i++) {
+        if (SDL_IsGameController(i)) {
+            auto controller = SDL_GameControllerOpen(i);
+            bool hasLED = SDL_GameControllerHasLED(controller);
+    
+            if (hasLED) {
+                sdlControllersWithLEDs[static_cast<ShipDeviceIndex>(i)] = SDL_GameControllerOpen(i);
+            } else {
+                SDL_GameControllerClose(controller);
+            }
         }
     }
 
-    for (auto [lusIndex, controller] : sdlControllersWithLEDs) {
+    for (auto [deviceIndex, controller] : sdlControllersWithLEDs) {
         for (int32_t button = SDL_CONTROLLER_BUTTON_A; button < SDL_CONTROLLER_BUTTON_MAX; button++) {
             if (SDL_GameControllerGetButton(controller, static_cast<SDL_GameControllerButton>(button))) {
-                mapping = std::make_shared<SDLLEDMapping>(lusIndex, portIndex, 0, Color_RGB8({ 0, 0, 0 }));
+                mapping = std::make_shared<SDLLEDMapping>(deviceIndex, portIndex, 0, Color_RGB8({ 0, 0, 0 }));
                 break;
             }
         }
@@ -95,7 +84,7 @@ std::shared_ptr<ControllerLEDMapping> LEDMappingFactory::CreateLEDMappingFromSDL
                 continue;
             }
 
-            mapping = std::make_shared<SDLLEDMapping>(lusIndex, portIndex, 0, Color_RGB8({ 0, 0, 0 }));
+            mapping = std::make_shared<SDLLEDMapping>(deviceIndex, portIndex, 0, Color_RGB8({ 0, 0, 0 }));
             break;
         }
     }

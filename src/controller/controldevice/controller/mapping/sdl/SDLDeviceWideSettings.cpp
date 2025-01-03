@@ -1,7 +1,7 @@
 #include "SDLDeviceWideSettings.h"
 
 namespace Ship {
-SDLDeviceWideSettings(int32_t sdlDeviceIndex, int32_t stickAxisThresholdPercentage, int32_t triggerAxisThresholdPercentage) : mDeviceIndex(sdlDeviceIndex) {
+SDLDeviceWideSettings::SDLDeviceWideSettings(int32_t sdlDeviceIndex, int32_t stickAxisThresholdPercentage, int32_t triggerAxisThresholdPercentage) : mDeviceIndex(sdlDeviceIndex) {
 } 
 
 SDLDeviceWideSettings::~SDLDeviceWideSettings() {

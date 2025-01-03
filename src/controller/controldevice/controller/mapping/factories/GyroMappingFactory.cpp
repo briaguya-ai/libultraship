@@ -4,7 +4,6 @@
 #include "utils/StringHelper.h"
 #include "libultraship/libultra/controller.h"
 #include "Context.h"
-#include "controller/deviceindex/ShipDeviceIndexToSDLDeviceIndexMapping.h"
 
 namespace Ship {
 std::shared_ptr<ControllerGyroMapping> GyroMappingFactory::CreateGyroMappingFromConfig(uint8_t portIndex,
@@ -47,34 +46,24 @@ std::shared_ptr<ControllerGyroMapping> GyroMappingFactory::CreateGyroMappingFrom
 std::shared_ptr<ControllerGyroMapping> GyroMappingFactory::CreateGyroMappingFromSDLInput(uint8_t portIndex) {
     std::unordered_map<ShipDeviceIndex, SDL_GameController*> sdlControllersWithGyro;
     std::shared_ptr<ControllerGyroMapping> mapping = nullptr;
-    for (auto [lusIndex, indexMapping] :
-         Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-        auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
 
-        if (sdlIndexMapping == nullptr) {
-            // this LUS index isn't mapped to an SDL index
-            continue;
-        }
-
-        auto sdlIndex = sdlIndexMapping->GetSDLDeviceIndex();
-
-        if (!SDL_IsGameController(sdlIndex)) {
-            // this SDL device isn't a game controller
-            continue;
-        }
-
-        auto controller = SDL_GameControllerOpen(sdlIndex);
-        if (SDL_GameControllerHasSensor(controller, SDL_SENSOR_GYRO)) {
-            sdlControllersWithGyro[lusIndex] = SDL_GameControllerOpen(sdlIndex);
-        } else {
-            SDL_GameControllerClose(controller);
+    for (auto i = 0; i < SDL_NumJoysticks(); i++) {
+        if (SDL_IsGameController(i)) {
+            auto controller = SDL_GameControllerOpen(i);
+            bool hasGyro = SDL_GameControllerHasSensor(controller, SDL_SENSOR_GYRO);
+    
+            if (hasGyro) {
+                sdlControllersWithGyro[static_cast<ShipDeviceIndex>(i)] = SDL_GameControllerOpen(i);
+            } else {
+                SDL_GameControllerClose(controller);
+            }
         }
     }
 
-    for (auto [lusIndex, controller] : sdlControllersWithGyro) {
+    for (auto [deviceIndex, controller] : sdlControllersWithGyro) {
         for (int32_t button = SDL_CONTROLLER_BUTTON_A; button < SDL_CONTROLLER_BUTTON_MAX; button++) {
             if (SDL_GameControllerGetButton(controller, static_cast<SDL_GameControllerButton>(button))) {
-                mapping = std::make_shared<SDLGyroMapping>(lusIndex, portIndex, 1.0f, 0.0f, 0.0f, 0.0f);
+                mapping = std::make_shared<SDLGyroMapping>(deviceIndex, portIndex, 1.0f, 0.0f, 0.0f, 0.0f);
                 mapping->Recalibrate();
                 break;
             }
@@ -98,7 +87,7 @@ std::shared_ptr<ControllerGyroMapping> GyroMappingFactory::CreateGyroMappingFrom
                 continue;
             }
 
-            mapping = std::make_shared<SDLGyroMapping>(lusIndex, portIndex, 1.0f, 0.0f, 0.0f, 0.0f);
+            mapping = std::make_shared<SDLGyroMapping>(deviceIndex, portIndex, 1.0f, 0.0f, 0.0f, 0.0f);
             mapping->Recalibrate();
             break;
         }
