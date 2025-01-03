@@ -75,6 +75,7 @@ class Gui {
     void SetupRendererFrame();
     void SaveConsoleVariablesNextFrame();
     bool SupportsViewports();
+    ImGuiID GetMainGameWindowID();
 
     void AddGuiWindow(std::shared_ptr<GuiWindow> guiWindow);
     std::shared_ptr<GuiWindow> GetGuiWindow(const std::string& name);
@@ -96,6 +97,8 @@ class Gui {
     void SetMenu(std::shared_ptr<GuiWindow> menu);
     std::shared_ptr<GuiWindow> GetMenu();
     bool GetMenuOrMenubarVisible();
+    bool IsMouseOverAnyGuiItem();
+    bool IsMouseOverActivePopup();
 
     bool GamepadNavigationEnabled();
     void BlockGamepadNavigation();
@@ -118,6 +121,7 @@ class Gui {
     void ApplyResolutionChanges();
     int16_t GetIntegerScaleFactor();
     void CheckSaveCvars();
+    void HandleMouseCapture();
 
   private:
     GuiWindowInitData mImpl;
