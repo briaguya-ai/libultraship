@@ -9,7 +9,7 @@
 #include "public/bridge/consolevariablebridge.h"
 #include "utils/StringHelper.h"
 #include "Context.h"
-#include "controller/deviceindex/ShipDeviceIndexToSDLDeviceIndexMapping.h"
+#include "controller/deviceindex/ShipDeviceIndexToSDLJoystickInstanceIDMapping.h"
 
 #include "controller/controldevice/controller/mapping/keyboard/KeyboardScancodes.h"
 #include "controller/controldevice/controller/mapping/mouse/WheelHandler.h"
@@ -132,7 +132,7 @@ AxisDirectionMappingFactory::CreateDefaultKeyboardAxisDirectionMappings(uint8_t 
 std::vector<std::shared_ptr<ControllerAxisDirectionMapping>>
 AxisDirectionMappingFactory::CreateDefaultSDLAxisDirectionMappings(ShipDeviceIndex shipDeviceIndex, uint8_t portIndex,
                                                                    StickIndex stickIndex) {
-    auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(
+    auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLJoystickInstanceIDMapping>(
         Context::GetInstance()
             ->GetControlDeck()
             ->GetDeviceIndexMappingManager()
@@ -160,23 +160,25 @@ AxisDirectionMappingFactory::CreateAxisDirectionMappingFromSDLInput(uint8_t port
                                                                     Direction direction) {
     std::unordered_map<ShipDeviceIndex, SDL_GameController*> sdlControllers;
     std::shared_ptr<ControllerAxisDirectionMapping> mapping = nullptr;
-    for (auto [lusIndex, indexMapping] :
+    for (auto [deviceIndex, indexMapping] :
          Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-        auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
+        auto sdlInstanceIDMapping =
+            std::dynamic_pointer_cast<ShipDeviceIndexToSDLJoystickInstanceIDMapping>(indexMapping);
 
-        if (sdlIndexMapping == nullptr) {
-            // this LUS index isn't mapped to an SDL index
+        if (sdlInstanceIDMapping == nullptr) {
+            // this ship device index isn't mapped to an SDL instance id
             continue;
         }
 
-        auto sdlIndex = sdlIndexMapping->GetSDLDeviceIndex();
+        auto sdlInstanceId = sdlInstanceIDMapping->GetSDLJoystickInstanceID();
+        auto sdlGameController = SDL_GameControllerFromInstanceID(sdlInstanceId);
 
-        if (!SDL_IsGameController(sdlIndex)) {
+        if (sdlGameController == nullptr) {
             // this SDL device isn't a game controller
             continue;
         }
 
-        sdlControllers[lusIndex] = SDL_GameControllerOpen(sdlIndex);
+        sdlControllers[deviceIndex] = sdlGameController;
     }
 
     for (auto [lusIndex, controller] : sdlControllers) {

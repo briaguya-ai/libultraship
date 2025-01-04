@@ -55,7 +55,7 @@ void ShipDeviceIndexMappingManager::InitializeSDLMappingsForPort(uint8_t n64port
     std::vector<ShipDeviceIndex> matchingGuidLusIndices;
     auto mappings = GetAllDeviceIndexMappingsFromConfig();
     for (auto [lusIndex, mapping] : mappings) {
-        auto sdlMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
+        auto sdlMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLJoystickInstanceIDMapping>(mapping);
         if (sdlMapping == nullptr) {
             continue;
         }
@@ -73,7 +73,7 @@ void ShipDeviceIndexMappingManager::InitializeSDLMappingsForPort(uint8_t n64port
         }
 
         auto mapping = mappings[lusIndex];
-        auto sdlMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
+        auto sdlMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLJoystickInstanceIDMapping>(mapping);
 
         sdlMapping->SetSDLDeviceIndex(sdlIndex);
         SetShipDeviceIndexToPhysicalDeviceIndexMapping(sdlMapping);
@@ -226,7 +226,7 @@ int32_t ShipDeviceIndexMappingManager::GetNewSDLDeviceIndexFromShipDeviceIndex(S
                     continue;
                 }
 
-                return sdlButtonMapping->GetCurrentSDLDeviceIndex();
+                return sdlButtonMapping->GetJoystickInstanceId();
             }
         }
 
@@ -242,14 +242,14 @@ int32_t ShipDeviceIndexMappingManager::GetNewSDLDeviceIndexFromShipDeviceIndex(S
                         continue;
                     }
 
-                    return sdlAxisDirectionMapping->GetCurrentSDLDeviceIndex();
+                    return sdlAxisDirectionMapping->GetJoystickInstanceId();
                 }
             }
         }
 
         auto sdlGyroMapping = std::dynamic_pointer_cast<SDLMapping>(controller->GetGyro()->GetGyroMapping());
         if (sdlGyroMapping != nullptr && sdlGyroMapping->GetShipDeviceIndex() == lusIndex) {
-            return sdlGyroMapping->GetCurrentSDLDeviceIndex();
+            return sdlGyroMapping->GetJoystickInstanceId();
         }
 
         for (auto [id, rumbleMapping] : controller->GetRumble()->GetAllRumbleMappings()) {
@@ -262,7 +262,7 @@ int32_t ShipDeviceIndexMappingManager::GetNewSDLDeviceIndexFromShipDeviceIndex(S
                 continue;
             }
 
-            return sdlRumbleMapping->GetCurrentSDLDeviceIndex();
+            return sdlRumbleMapping->GetJoystickInstanceId();
         }
 
         for (auto [id, ledMapping] : controller->GetLED()->GetAllLEDMappings()) {
@@ -275,7 +275,7 @@ int32_t ShipDeviceIndexMappingManager::GetNewSDLDeviceIndexFromShipDeviceIndex(S
                 continue;
             }
 
-            return sdlLEDMapping->GetCurrentSDLDeviceIndex();
+            return sdlLEDMapping->GetJoystickInstanceId();
         }
     }
 

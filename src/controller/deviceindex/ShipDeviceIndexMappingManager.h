@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ShipDeviceIndexToSDLDeviceIndexMapping.h"
+#include "ShipDeviceIndexToSDLJoystickInstanceIDMapping.h"
 
 #include <unordered_map>
 #include <memory>

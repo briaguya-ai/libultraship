@@ -28,7 +28,7 @@ void SDLAxisDirectionToButtonMapping::UpdatePad(CONTROLLERBUTTONS_T& padButtons)
                             ->GetControlDeck()
                             ->GetDeviceIndexMappingManager()
                             ->GetDeviceIndexMappingFromShipDeviceIndex(ControllerInputMapping::mShipDeviceIndex);
-    auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
+    auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLJoystickInstanceIDMapping>(indexMapping);
 
     if (sdlIndexMapping != nullptr) {
         if (AxisIsStick()) {

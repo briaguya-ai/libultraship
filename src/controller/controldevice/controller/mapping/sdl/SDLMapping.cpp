@@ -1,7 +1,7 @@
 #include "SDLMapping.h"
 #include <spdlog/spdlog.h>
 #include "Context.h"
-#include "controller/deviceindex/ShipDeviceIndexToSDLDeviceIndexMapping.h"
+#include "controller/deviceindex/ShipDeviceIndexToSDLJoystickInstanceIDMapping.h"
 
 #include "utils/StringHelper.h"
 
@@ -13,7 +13,7 @@ SDLMapping::~SDLMapping() {
 }
 
 bool SDLMapping::OpenController() {
-    auto deviceIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(
+    auto deviceIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLJoystickInstanceIDMapping>(
         Context::GetInstance()
             ->GetControlDeck()
             ->GetDeviceIndexMappingManager()
@@ -25,7 +25,7 @@ bool SDLMapping::OpenController() {
         return false;
     }
 
-    const auto newCont = SDL_GameControllerOpen(deviceIndexMapping->GetSDLDeviceIndex());
+    const auto newCont = SDL_GameControllerFromInstanceID(deviceIndexMapping->GetSDLJoystickInstanceID());
 
     // We failed to load the controller
     if (newCont == nullptr) {
@@ -114,8 +114,8 @@ bool SDLMapping::UsesGameCubeLayout() {
     return vid == 0x57e && pid == 0x337;
 }
 
-int32_t SDLMapping::GetSDLDeviceIndex() {
-    auto deviceIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(
+int32_t SDLMapping::GetSavedJoystickInstanceId() {
+    auto deviceIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLJoystickInstanceIDMapping>(
         Context::GetInstance()
             ->GetControlDeck()
             ->GetDeviceIndexMappingManager()
@@ -126,7 +126,7 @@ int32_t SDLMapping::GetSDLDeviceIndex() {
         return -1;
     }
 
-    return deviceIndexMapping->GetSDLDeviceIndex();
+    return deviceIndexMapping->GetSDLJoystickInstanceID();
 }
 
 std::string SDLMapping::GetSDLControllerName() {
@@ -138,7 +138,7 @@ std::string SDLMapping::GetSDLControllerName() {
 
 std::string SDLMapping::GetSDLDeviceName() {
     return ControllerLoaded()
-               ? StringHelper::Sprintf("%s (SDL %d)", GetSDLControllerName().c_str(), GetSDLDeviceIndex())
+               ? StringHelper::Sprintf("%s (SDL %d)", GetSDLControllerName().c_str(), GetJoystickInstanceId())
                : StringHelper::Sprintf("%s (Disconnected)", GetSDLControllerName().c_str());
 }
 
@@ -148,23 +148,5 @@ int32_t SDLMapping::GetJoystickInstanceId() {
     }
 
     return SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(mController));
-}
-
-int32_t SDLMapping::GetCurrentSDLDeviceIndex() {
-    if (mController == nullptr) {
-        return -1;
-    }
-
-    for (int32_t i = 0; i < SDL_NumJoysticks(); i++) {
-        SDL_Joystick* joystick = SDL_JoystickOpen(i);
-        if (SDL_JoystickInstanceID(joystick) == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(mController))) {
-            SDL_JoystickClose(joystick);
-            return i;
-        }
-        SDL_JoystickClose(joystick);
-    }
-
-    // didn't find one
-    return -1;
 }
 } // namespace Ship

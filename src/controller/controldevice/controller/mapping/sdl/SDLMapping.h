@@ -15,7 +15,6 @@ class SDLMapping : public ControllerMapping {
     SDLMapping(ShipDeviceIndex shipDeviceIndex);
     ~SDLMapping();
     int32_t GetJoystickInstanceId();
-    int32_t GetCurrentSDLDeviceIndex();
     bool CloseController();
     bool ControllerLoaded(bool closeIfDisconnected = false);
 
@@ -28,7 +27,7 @@ class SDLMapping : public ControllerMapping {
     bool UsesXboxLayout();
     bool UsesGameCubeLayout();
     std::string GetSDLDeviceName();
-    int32_t GetSDLDeviceIndex();
+    int32_t GetSavedJoystickInstanceId();
 
     SDL_GameController* mController;
 

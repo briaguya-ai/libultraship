@@ -4,7 +4,7 @@
 #include "utils/StringHelper.h"
 #include "libultraship/libultra/controller.h"
 #include "Context.h"
-#include "controller/deviceindex/ShipDeviceIndexToSDLDeviceIndexMapping.h"
+#include "controller/deviceindex/ShipDeviceIndexToSDLJoystickInstanceIDMapping.h"
 
 namespace Ship {
 std::shared_ptr<ControllerLEDMapping> LEDMappingFactory::CreateLEDMappingFromConfig(uint8_t portIndex, std::string id) {
@@ -45,27 +45,28 @@ std::shared_ptr<ControllerLEDMapping> LEDMappingFactory::CreateLEDMappingFromCon
 std::shared_ptr<ControllerLEDMapping> LEDMappingFactory::CreateLEDMappingFromSDLInput(uint8_t portIndex) {
     std::unordered_map<ShipDeviceIndex, SDL_GameController*> sdlControllersWithLEDs;
     std::shared_ptr<ControllerLEDMapping> mapping = nullptr;
-    for (auto [lusIndex, indexMapping] :
+    for (auto [deviceIndex, indexMapping] :
          Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-        auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
+        auto sdlInstanceIDMapping =
+            std::dynamic_pointer_cast<ShipDeviceIndexToSDLJoystickInstanceIDMapping>(indexMapping);
 
-        if (sdlIndexMapping == nullptr) {
-            // this LUS index isn't mapped to an SDL index
+        if (sdlInstanceIDMapping == nullptr) {
+            // this ship device index isn't mapped to an SDL instance id
             continue;
         }
 
-        auto sdlIndex = sdlIndexMapping->GetSDLDeviceIndex();
+        auto sdlInstanceId = sdlInstanceIDMapping->GetSDLJoystickInstanceID();
+        auto sdlGameController = SDL_GameControllerFromInstanceID(sdlInstanceId);
 
-        if (!SDL_IsGameController(sdlIndex)) {
+        if (sdlGameController == nullptr) {
             // this SDL device isn't a game controller
             continue;
         }
 
-        auto controller = SDL_GameControllerOpen(sdlIndex);
-        if (SDL_GameControllerHasLED(controller)) {
-            sdlControllersWithLEDs[lusIndex] = SDL_GameControllerOpen(sdlIndex);
+        if (SDL_GameControllerHasLED(sdlGameController)) {
+            sdlControllersWithLEDs[deviceIndex] = sdlGameController;
         } else {
-            SDL_GameControllerClose(controller);
+            SDL_GameControllerClose(sdlGameController);
         }
     }
 
