@@ -45,82 +45,34 @@ void ShipDeviceIndexMappingManager::InitializeSDLMappingsForPort(uint8_t n64port
         return;
     }
 
-    char guidString[33]; // SDL_GUID_LENGTH + 1 for null terminator
-    SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(sdlIndex), guidString, sizeof(guidString));
     std::string sdlControllerName = SDL_GameControllerNameForIndex(sdlIndex) != nullptr
                                         ? SDL_GameControllerNameForIndex(sdlIndex)
                                         : "Game Controller";
-
-    // find all lus indices with this guid
-    std::vector<ShipDeviceIndex> matchingGuidLusIndices;
-    auto mappings = GetAllDeviceIndexMappingsFromConfig();
-    for (auto [lusIndex, mapping] : mappings) {
-        auto sdlMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
-        if (sdlMapping == nullptr) {
-            continue;
-        }
-
-        if (sdlMapping->GetJoystickGUID() == guidString) {
-            matchingGuidLusIndices.push_back(lusIndex);
-        }
+    
+    auto deviceIndexMapping = GetDeviceIndexMappingFromShipDeviceIndex(static_cast<ShipDeviceIndex>(sdlIndex));
+    if (deviceIndexMapping == nullptr) {
+        deviceIndexMapping = std::make_shared<ShipDeviceIndexToSDLDeviceIndexMapping>(static_cast<ShipDeviceIndex>(sdlIndex), sdlIndex,
+            sdlControllerName, 25, 25);
     }
 
-    // set this device to the lowest available lus index with this guid
-    for (auto lusIndex : matchingGuidLusIndices) {
-        if (GetDeviceIndexMappingFromShipDeviceIndex(lusIndex) != nullptr) {
-            // we already loaded this one
-            continue;
+    // if we have mappings for this device, we're good and don't need to add any mappings
+    bool foundMappings = false;
+    for (auto portToCheck = 0; portToCheck < 4; portToCheck++) {
+        if (Context::GetInstance()->GetControlDeck()->GetControllerByPort(portToCheck)->HasMappingsForShipDeviceIndex(
+            static_cast<ShipDeviceIndex>(sdlIndex))) {
+            foundMappings = true;
         }
-
-        auto mapping = mappings[lusIndex];
-        auto sdlMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
-
-        sdlMapping->SetSDLDeviceIndex(sdlIndex);
-        SetShipDeviceIndexToPhysicalDeviceIndexMapping(sdlMapping);
-
-        // if we have mappings for this LUS device on this port, we're good and don't need to move any mappings
-        if (Context::GetInstance()->GetControlDeck()->GetControllerByPort(n64port)->HasMappingsForShipDeviceIndex(
-                lusIndex)) {
-            return;
-        }
-
-        if (!Context::GetInstance()->GetControlDeck()->IsSinglePlayerMappingMode()) {
-            // move mappings from other port to this one
-            for (uint8_t portIndex = 0; portIndex < 4; portIndex++) {
-                if (portIndex == n64port) {
-                    continue;
-                }
-
-                if (!Context::GetInstance()
-                         ->GetControlDeck()
-                         ->GetControllerByPort(portIndex)
-                         ->HasMappingsForShipDeviceIndex(lusIndex)) {
-                    continue;
-                }
-
-                Context::GetInstance()
-                    ->GetControlDeck()
-                    ->GetControllerByPort(portIndex)
-                    ->MoveMappingsToDifferentController(
-                        Context::GetInstance()->GetControlDeck()->GetControllerByPort(n64port), lusIndex);
-                return;
-            }
-        }
-
-        // we have a device index mapping but no button/axis/etc. mappings, make defaults
-        Context::GetInstance()->GetControlDeck()->GetControllerByPort(n64port)->AddDefaultMappings(lusIndex);
+    }
+    if (foundMappings) {
         return;
     }
 
-    // if we didn't find a mapping for this guid, make defaults
-    auto lusIndex = GetLowestShipDeviceIndexWithNoAssociatedButtonOrAxisDirectionMappings();
-    auto deviceIndexMapping = std::make_shared<ShipDeviceIndexToSDLDeviceIndexMapping>(lusIndex, sdlIndex, guidString,
-                                                                                       sdlControllerName, 25, 25);
-    mShipDeviceIndexToSDLControllerNames[lusIndex] = sdlControllerName;
+    // if we didn't find a mapping for this device, make defaults
+    mShipDeviceIndexToSDLControllerNames[static_cast<ShipDeviceIndex>(sdlIndex)] = sdlControllerName;
     deviceIndexMapping->SaveToConfig();
     SetShipDeviceIndexToPhysicalDeviceIndexMapping(deviceIndexMapping);
     SaveMappingIdsToConfig();
-    Context::GetInstance()->GetControlDeck()->GetControllerByPort(n64port)->AddDefaultMappings(lusIndex);
+    Context::GetInstance()->GetControlDeck()->GetControllerByPort(n64port)->AddDefaultMappings(static_cast<ShipDeviceIndex>(sdlIndex));
 }
 
 std::shared_ptr<ShipDeviceIndexToPhysicalDeviceIndexMapping>
@@ -136,9 +88,6 @@ ShipDeviceIndexMappingManager::CreateDeviceIndexMappingFromConfig(std::string id
         int32_t sdlDeviceIndex =
             CVarGetInteger(StringHelper::Sprintf("%s.SDLDeviceIndex", mappingCvarKey.c_str()).c_str(), -1);
 
-        std::string sdlJoystickGuid =
-            CVarGetString(StringHelper::Sprintf("%s.SDLJoystickGUID", mappingCvarKey.c_str()).c_str(), "");
-
         std::string sdlControllerName =
             CVarGetString(StringHelper::Sprintf("%s.SDLControllerName", mappingCvarKey.c_str()).c_str(), "");
 
@@ -147,7 +96,7 @@ ShipDeviceIndexMappingManager::CreateDeviceIndexMappingFromConfig(std::string id
         int32_t triggerAxisThreshold = CVarGetInteger(
             StringHelper::Sprintf("%s.TriggerAxisThresholdPercentage", mappingCvarKey.c_str()).c_str(), 25);
 
-        if (shipDeviceIndex < 0 || sdlJoystickGuid == "") {
+        if (shipDeviceIndex < 0) {
             // something about this mapping is invalid
             CVarClear(mappingCvarKey.c_str());
             CVarSave();
@@ -155,7 +104,7 @@ ShipDeviceIndexMappingManager::CreateDeviceIndexMappingFromConfig(std::string id
         }
 
         return std::make_shared<ShipDeviceIndexToSDLDeviceIndexMapping>(
-            static_cast<ShipDeviceIndex>(shipDeviceIndex), sdlDeviceIndex, sdlJoystickGuid, sdlControllerName,
+            static_cast<ShipDeviceIndex>(shipDeviceIndex), sdlDeviceIndex, sdlControllerName,
             stickAxisThreshold, triggerAxisThreshold);
     }
 

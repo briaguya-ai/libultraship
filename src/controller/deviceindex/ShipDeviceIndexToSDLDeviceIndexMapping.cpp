@@ -4,10 +4,10 @@
 
 namespace Ship {
 ShipDeviceIndexToSDLDeviceIndexMapping::ShipDeviceIndexToSDLDeviceIndexMapping(
-    ShipDeviceIndex shipDeviceIndex, int32_t sdlDeviceIndex, std::string sdlJoystickGuid, std::string sdlControllerName,
+    ShipDeviceIndex shipDeviceIndex, int32_t sdlDeviceIndex, std::string sdlControllerName,
     int32_t stickAxisThresholdPercentage, int32_t triggerAxisThresholdPercentage)
     : ShipDeviceIndexToPhysicalDeviceIndexMapping(shipDeviceIndex), mSDLDeviceIndex(sdlDeviceIndex),
-      mSDLJoystickGUID(sdlJoystickGuid), mSDLControllerName(sdlControllerName),
+      mSDLControllerName(sdlControllerName),
       mStickAxisThresholdPercentage(stickAxisThresholdPercentage),
       mTriggerAxisThresholdPercentage(triggerAxisThresholdPercentage) {
 }
@@ -39,10 +39,6 @@ void ShipDeviceIndexToSDLDeviceIndexMapping::SetTriggerAxisThresholdPercentage(i
     mTriggerAxisThresholdPercentage = triggerAxisThresholdPercentage;
 }
 
-std::string ShipDeviceIndexToSDLDeviceIndexMapping::GetJoystickGUID() {
-    return mSDLJoystickGUID;
-}
-
 std::string ShipDeviceIndexToSDLDeviceIndexMapping::GetSDLControllerName() {
     return mSDLControllerName;
 }
@@ -53,8 +49,6 @@ void ShipDeviceIndexToSDLDeviceIndexMapping::SaveToConfig() {
                   "ShipDeviceIndexToSDLDeviceIndexMapping");
     CVarSetInteger(StringHelper::Sprintf("%s.ShipDeviceIndex", mappingCvarKey.c_str()).c_str(), mShipDeviceIndex);
     CVarSetInteger(StringHelper::Sprintf("%s.SDLDeviceIndex", mappingCvarKey.c_str()).c_str(), mSDLDeviceIndex);
-    CVarSetString(StringHelper::Sprintf("%s.SDLJoystickGUID", mappingCvarKey.c_str()).c_str(),
-                  mSDLJoystickGUID.c_str());
     CVarSetString(StringHelper::Sprintf("%s.SDLControllerName", mappingCvarKey.c_str()).c_str(),
                   mSDLControllerName.c_str());
     CVarSetInteger(StringHelper::Sprintf("%s.StickAxisThresholdPercentage", mappingCvarKey.c_str()).c_str(),
@@ -70,7 +64,6 @@ void ShipDeviceIndexToSDLDeviceIndexMapping::EraseFromConfig() {
     CVarClear(StringHelper::Sprintf("%s.DeviceMappingClass", mappingCvarKey.c_str()).c_str());
     CVarClear(StringHelper::Sprintf("%s.ShipDeviceIndex", mappingCvarKey.c_str()).c_str());
     CVarClear(StringHelper::Sprintf("%s.SDLDeviceIndex", mappingCvarKey.c_str()).c_str());
-    CVarClear(StringHelper::Sprintf("%s.SDLJoystickGUID", mappingCvarKey.c_str()).c_str());
     CVarClear(StringHelper::Sprintf("%s.SDLControllerName", mappingCvarKey.c_str()).c_str());
     CVarClear(StringHelper::Sprintf("%s.StickAxisThresholdPercentage", mappingCvarKey.c_str()).c_str());
     CVarClear(StringHelper::Sprintf("%s.TriggerAxisThresholdPercentage", mappingCvarKey.c_str()).c_str());
