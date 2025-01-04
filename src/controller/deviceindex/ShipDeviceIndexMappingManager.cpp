@@ -175,7 +175,7 @@ void ShipDeviceIndexMappingManager::InitializeMappingsSinglePlayer() {
     std::vector<int32_t> connectedSdlControllerIndices;
     for (auto i = 0; i < SDL_NumJoysticks(); i++) {
         if (SDL_IsGameController(i)) {
-            connectedSdlControllerIndices.push_back(i);
+            connectedSdlControllerIndices.push_back(SDL_JoystickGetDeviceInstanceID(i));
         }
     }
 
