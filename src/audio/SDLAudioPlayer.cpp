@@ -9,7 +9,11 @@ SDLAudioPlayer::~SDLAudioPlayer() {
 }
 
 bool SDLAudioPlayer::DoInit() {
-    if (SDL_Init(SDL_INIT_AUDIO) != 0) {
+    // https://wiki.libsdl.org/SDL3/SDL_Init
+    //     SDL_Init() simply forwards to calling SDL_InitSubSystem().
+    // https://wiki.libsdl.org/SDL3/SDL_InitSubSystem
+    //     (bool) Returns true on success or false on failure
+    if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
         SPDLOG_ERROR("SDL init error: %s\n", SDL_GetError());
         return false;
     }

@@ -14,17 +14,21 @@ int32_t osContInit(OSMesgQueue* mq, uint8_t* controllerBits, OSContStatus* statu
     *controllerBits = 0;
     status->status |= 1;
 
-    if (SDL_Init(SDL_INIT_GAMEPAD) != 0) {
-        SPDLOG_ERROR("Failed to initialize SDL game controllers ({})", SDL_GetError());
+    // https://wiki.libsdl.org/SDL3/SDL_Init
+    //     SDL_Init() simply forwards to calling SDL_InitSubSystem().
+    // https://wiki.libsdl.org/SDL3/SDL_InitSubSystem
+    //     (bool) Returns true on success or false on failure
+    if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) {
+        SPDLOG_ERROR("Failed to initialize SDL gamepad subsystem ({})", SDL_GetError());
         exit(EXIT_FAILURE);
     }
 
     std::string controllerDb = Ship::Context::LocateFileAcrossAppDirs("gamecontrollerdb.txt");
     int mappingsAdded = SDL_AddGamepadMappingsFromFile(controllerDb.c_str());
     if (mappingsAdded >= 0) {
-        SPDLOG_INFO("Added SDL game controllers from \"{}\" ({})", controllerDb, mappingsAdded);
+        SPDLOG_INFO("Added SDL gamepad from \"{}\" ({})", controllerDb, mappingsAdded);
     } else {
-        SPDLOG_ERROR("Failed add SDL game controller mappings from \"{}\" ({})", controllerDb, SDL_GetError());
+        SPDLOG_ERROR("Failed add SDL gamepad mappings from \"{}\" ({})", controllerDb, SDL_GetError());
     }
 
     Ship::Context::GetInstance()->GetControlDeck()->Init(controllerBits);
