@@ -43,19 +43,16 @@ void ShipDeviceIndexMappingManager::InitializeMappingsMultiplayer(std::vector<in
     mIsInitialized = true;
 }
 
-void ShipDeviceIndexMappingManager::InitializeSDLMappingsForPort(uint8_t n64port, int32_t sdlIndex) {
-    if (!SDL_IsGamepad(sdlIndex)) {
+void ShipDeviceIndexMappingManager::InitializeSDLMappingsForPort(uint8_t n64port, int32_t sdlJoystickInstanceId) {
+    if (!SDL_IsGamepad(sdlJoystickInstanceId)) {
         return;
     }
 
-    // todo: instance ids
-    // char guidString[33]; // SDL_GUID_LENGTH + 1 for null terminator
-    // SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(sdlIndex), guidString, sizeof(guidString));
-    // std::string sdlControllerName = SDL_GameControllerNameForIndex(sdlIndex) != nullptr
-    //                                     ? SDL_GameControllerNameForIndex(sdlIndex)
-    //                                     : "Game Controller";
-    char guidString[33] = "guidString";
-    std::string sdlControllerName = "controllerName";
+    char guidString[33]; // SDL_GUID_LENGTH + 1 for null terminator
+    SDL_GUIDToString(SDL_GetJoystickGUIDForID(sdlJoystickInstanceId), guidString, sizeof(guidString));
+    std::string sdlControllerName = SDL_GetGamepadNameForID(sdlJoystickInstanceId) != nullptr
+                                        ? SDL_GetGamepadNameForID(sdlJoystickInstanceId)
+                                        : "Game Controller";    
 
     // find all lus indices with this guid
     std::vector<ShipDeviceIndex> matchingGuidLusIndices;
@@ -81,7 +78,7 @@ void ShipDeviceIndexMappingManager::InitializeSDLMappingsForPort(uint8_t n64port
         auto mapping = mappings[lusIndex];
         auto sdlMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(mapping);
 
-        sdlMapping->SetSDLInstanceID(sdlIndex);
+        sdlMapping->SetSDLInstanceID(sdlJoystickInstanceId);
         SetShipDeviceIndexToPhysicalDeviceIndexMapping(sdlMapping);
 
         // if we have mappings for this LUS device on this port, we're good and don't need to move any mappings
@@ -120,7 +117,7 @@ void ShipDeviceIndexMappingManager::InitializeSDLMappingsForPort(uint8_t n64port
 
     // if we didn't find a mapping for this guid, make defaults
     auto lusIndex = GetLowestShipDeviceIndexWithNoAssociatedButtonOrAxisDirectionMappings();
-    auto deviceIndexMapping = std::make_shared<ShipDeviceIndexToSDLInstanceIDMapping>(lusIndex, sdlIndex, guidString,
+    auto deviceIndexMapping = std::make_shared<ShipDeviceIndexToSDLInstanceIDMapping>(lusIndex, sdlJoystickInstanceId, guidString,
                                                                                        sdlControllerName, 25, 25);
     mShipDeviceIndexToSDLControllerNames[lusIndex] = sdlControllerName;
     deviceIndexMapping->SaveToConfig();
@@ -178,17 +175,22 @@ void ShipDeviceIndexMappingManager::InitializeMappingsSinglePlayer() {
         sdlMapping->CloseController();
     }
 
-    std::vector<int32_t> connectedSdlControllerIndices;
-    // todo: instance ids
-    // for (auto i = 0; i < SDL_NumJoysticks(); i++) {
-    //     if (SDL_IsGamepad(i)) {
-    //         connectedSdlControllerIndices.push_back(i);
-    //     }
-    // }
+    std::vector<int32_t> connectedSdlGamepadInstanceIDs;
+    int i, numJoysticks;
+    SDL_JoystickID *joysticks = SDL_GetJoysticks(&numJoysticks);
+    if (joysticks) {
+        for (i = 0; i < numJoysticks; ++i) {
+            SDL_JoystickID instanceId = joysticks[i];
+            if (SDL_IsGamepad(instanceId)) {
+                connectedSdlGamepadInstanceIDs.push_back(instanceId);
+            }
+        }
+        SDL_free(joysticks);
+    }
 
     mShipDeviceIndexToPhysicalDeviceIndexMappings.clear();
-    for (auto sdlIndex : connectedSdlControllerIndices) {
-        InitializeSDLMappingsForPort(0, sdlIndex);
+    for (auto sdlInstanceID : connectedSdlGamepadInstanceIDs) {
+        InitializeSDLMappingsForPort(0, sdlInstanceID);
     }
     mIsInitialized = true;
 }
@@ -290,12 +292,12 @@ int32_t ShipDeviceIndexMappingManager::GetNewSDLInstanceIDFromShipDeviceIndex(Sh
     return -1;
 }
 
-void ShipDeviceIndexMappingManager::HandlePhysicalDeviceConnect(int32_t sdlInstanceID) {
+void ShipDeviceIndexMappingManager::HandlePhysicalDeviceConnect(int32_t sdlJoystickInstanceId) {
     if (!mIsInitialized) {
         return;
     }
 
-    if (!SDL_IsGamepad(sdlInstanceID)) {
+    if (!SDL_IsGamepad(sdlJoystickInstanceId)) {
         return;
     }
 
@@ -331,7 +333,7 @@ void ShipDeviceIndexMappingManager::HandlePhysicalDeviceConnect(int32_t sdlInsta
             }
         }
 
-        InitializeSDLMappingsForPort(0, sdlInstanceID);
+        InitializeSDLMappingsForPort(0, sdlJoystickInstanceId);
         return;
     } else {
         for (uint8_t portIndex = 0; portIndex < 4; portIndex++) {
@@ -353,7 +355,7 @@ void ShipDeviceIndexMappingManager::HandlePhysicalDeviceConnect(int32_t sdlInsta
                 continue;
             }
 
-            InitializeSDLMappingsForPort(portIndex, sdlInstanceID);
+            InitializeSDLMappingsForPort(portIndex, sdlJoystickInstanceId);
             return;
         }
     }
@@ -379,6 +381,8 @@ void ShipDeviceIndexMappingManager::HandlePhysicalDeviceDisconnectSinglePlayer(i
         return;
     }
 
+    // todo: we might be able to remove this because it was written to handle device index
+    //       which updates when controllers disconnect, but instance id stays the same
     for (auto [lusIndex, mapping] : mShipDeviceIndexToPhysicalDeviceIndexMappings) {
         auto sdlMapping = dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(mapping);
         if (sdlMapping == nullptr) {

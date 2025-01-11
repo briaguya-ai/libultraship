@@ -21,8 +21,8 @@ class ControllerReorderingWindow : public GuiWindow {
     void UpdateElement() override;
 
   private:
-    int32_t GetSDLIndexFromSDLInput();
-    std::vector<int32_t> mDeviceIndices;
+    int32_t GetSDLInstanceIDFromSDLInput();
+    std::vector<int32_t> mGamepadInstanceIDs;
     uint8_t mCurrentPortNumber;
 };
 } // namespace Ship

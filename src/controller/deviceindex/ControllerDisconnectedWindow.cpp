@@ -34,18 +34,23 @@ void ControllerDisconnectedWindow::UpdateElement() {
 int32_t ControllerDisconnectedWindow::GetSDLIndexFromSDLInput() {
     int32_t sdlInstanceID = -1;
 
-    std::unordered_map<int32_t, SDL_Gamepad*> sdlControllers;
-    // todo: use instance ids
-    // for (auto i = 0; i < SDL_NumJoysticks(); i++) {
-    //     if (SDL_IsGamepad(i)) {
-    //         sdlControllers[i] = SDL_OpenGamepad(i);
-    //     }
-    // }
+    std::unordered_map<int32_t, SDL_Gamepad*> sdlGamepads;
+    int i, numJoysticks;
+    SDL_JoystickID *joysticks = SDL_GetJoysticks(&numJoysticks);
+    if (joysticks) {
+        for (i = 0; i < numJoysticks; ++i) {
+            SDL_JoystickID instanceId = joysticks[i];
+            if (SDL_IsGamepad(instanceId)) {
+                sdlGamepads[instanceId] = SDL_OpenGamepad(instanceId);
+            }
+        }
+        SDL_free(joysticks);
+    }
 
-    for (auto [controllerIndex, controller] : sdlControllers) {
+    for (auto [gamepadInstanceID, gamepad] : sdlGamepads) {
         for (int32_t button = SDL_GAMEPAD_BUTTON_SOUTH; button < SDL_GAMEPAD_BUTTON_COUNT; button++) {
-            if (SDL_GetGamepadButton(controller, static_cast<SDL_GamepadButton>(button))) {
-                sdlInstanceID = controllerIndex;
+            if (SDL_GetGamepadButton(gamepad, static_cast<SDL_GamepadButton>(button))) {
+                sdlInstanceID = gamepadInstanceID;
                 break;
             }
         }
@@ -56,16 +61,16 @@ int32_t ControllerDisconnectedWindow::GetSDLIndexFromSDLInput() {
 
         for (int32_t i = SDL_GAMEPAD_AXIS_LEFTX; i < SDL_GAMEPAD_AXIS_COUNT; i++) {
             const auto axis = static_cast<SDL_GamepadAxis>(i);
-            const auto axisValue = SDL_GetGamepadAxis(controller, axis) / 32767.0f;
+            const auto axisValue = SDL_GetGamepadAxis(gamepad, axis) / 32767.0f;
             if (axisValue < -0.7f || axisValue > 0.7f) {
-                sdlInstanceID = controllerIndex;
+                sdlInstanceID = gamepadInstanceID;
                 break;
             }
         }
     }
 
-    for (auto [i, controller] : sdlControllers) {
-        SDL_CloseGamepad(controller);
+    for (auto [i, gamepad] : sdlGamepads) {
+        SDL_CloseGamepad(gamepad);
     }
 
     return sdlInstanceID;

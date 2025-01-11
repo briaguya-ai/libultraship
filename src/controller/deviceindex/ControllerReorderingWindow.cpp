@@ -10,28 +10,33 @@ ControllerReorderingWindow::~ControllerReorderingWindow() {
 }
 
 void ControllerReorderingWindow::InitElement() {
-    mDeviceIndices.clear();
+    mGamepadInstanceIDs.clear();
     mCurrentPortNumber = 1;
 }
 
 void ControllerReorderingWindow::UpdateElement() {
 }
 
-int32_t ControllerReorderingWindow::GetSDLIndexFromSDLInput() {
+int32_t ControllerReorderingWindow::GetSDLInstanceIDFromSDLInput() {
     int32_t sdlInstanceID = -1;
 
-    // todo: use instance ids
-    std::unordered_map<int32_t, SDL_Gamepad*> sdlControllers;
-    // for (auto i = 0; i < SDL_NumJoysticks(); i++) {
-    //     if (SDL_IsGamepad(i)) {
-    //         sdlControllers[i] = SDL_OpenGamepad(i);
-    //     }
-    // }
+    std::unordered_map<int32_t, SDL_Gamepad*> sdlGamepads;
+    int i, numJoysticks;
+    SDL_JoystickID *joysticks = SDL_GetJoysticks(&numJoysticks);
+    if (joysticks) {
+        for (i = 0; i < numJoysticks; ++i) {
+            SDL_JoystickID instanceId = joysticks[i];
+            if (SDL_IsGamepad(instanceId)) {
+                sdlGamepads[instanceId] = SDL_OpenGamepad(instanceId);
+            }
+        }
+        SDL_free(joysticks);
+    }
 
-    for (auto [controllerIndex, controller] : sdlControllers) {
+    for (auto [gamepadInstanceID, gamepad] : sdlGamepads) {
         for (int32_t button = SDL_GAMEPAD_BUTTON_SOUTH; button < SDL_GAMEPAD_BUTTON_COUNT; button++) {
-            if (SDL_GetGamepadButton(controller, static_cast<SDL_GamepadButton>(button))) {
-                sdlInstanceID = controllerIndex;
+            if (SDL_GetGamepadButton(gamepad, static_cast<SDL_GamepadButton>(button))) {
+                sdlInstanceID = gamepadInstanceID;
                 break;
             }
         }
@@ -42,16 +47,16 @@ int32_t ControllerReorderingWindow::GetSDLIndexFromSDLInput() {
 
         for (int32_t i = SDL_GAMEPAD_AXIS_LEFTX; i < SDL_GAMEPAD_AXIS_COUNT; i++) {
             const auto axis = static_cast<SDL_GamepadAxis>(i);
-            const auto axisValue = SDL_GetGamepadAxis(controller, axis) / 32767.0f;
+            const auto axisValue = SDL_GetGamepadAxis(gamepad, axis) / 32767.0f;
             if (axisValue < -0.7f || axisValue > 0.7f) {
-                sdlInstanceID = controllerIndex;
+                sdlInstanceID = gamepadInstanceID;
                 break;
             }
         }
     }
 
-    for (auto [i, controller] : sdlControllers) {
-        SDL_CloseGamepad(controller);
+    for (auto [i, gamepad] : sdlGamepads) {
+        SDL_CloseGamepad(gamepad);
     }
 
     return sdlInstanceID;
@@ -66,33 +71,33 @@ void ControllerReorderingWindow::DrawElement() {
 
     // if we don't have more than one controller, just close the window
     int i, numJoysticks;
-    std::vector<int32_t> connectedSdlControllerIndices;
+    std::vector<int32_t> connectedSdlGamepadInstanceIDs;
     SDL_JoystickID *joysticks = SDL_GetJoysticks(&numJoysticks);
     if (joysticks) {
         for (i = 0; i < numJoysticks; ++i) {
             SDL_JoystickID instanceId = joysticks[i];
             if (SDL_IsGamepad(instanceId)) {
-                connectedSdlControllerIndices.push_back(i);
+                connectedSdlGamepadInstanceIDs.push_back(instanceId);
             }
         }
         SDL_free(joysticks);
     }
-    if (connectedSdlControllerIndices.size() <= 1) {
+    if (connectedSdlGamepadInstanceIDs.size() <= 1) {
         Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->InitializeMappingsMultiplayer(
-            connectedSdlControllerIndices);
+            connectedSdlGamepadInstanceIDs);
         Hide();
         return;
     }
 
     // we have more than one controller, prompt the user for order
-    if (mCurrentPortNumber <= std::min(connectedSdlControllerIndices.size(), static_cast<size_t>(MAXCONTROLLERS))) {
+    if (mCurrentPortNumber <= std::min(connectedSdlGamepadInstanceIDs.size(), static_cast<size_t>(MAXCONTROLLERS))) {
         ImGui::OpenPopup("Set Controller");
         if (ImGui::BeginPopupModal("Set Controller", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::Text("Press any button or move any axis\non the controller for port %d", mCurrentPortNumber);
 
-            auto index = GetSDLIndexFromSDLInput();
-            if (index != -1 && std::find(mDeviceIndices.begin(), mDeviceIndices.end(), index) == mDeviceIndices.end()) {
-                mDeviceIndices.push_back(index);
+            auto instanceID = GetSDLInstanceIDFromSDLInput();
+            if (instanceID != -1 && std::find(mGamepadInstanceIDs.begin(), mGamepadInstanceIDs.end(), instanceID) == mGamepadInstanceIDs.end()) {
+                mGamepadInstanceIDs.push_back(instanceID);
                 mCurrentPortNumber++;
                 ImGui::CloseCurrentPopup();
             }
@@ -112,8 +117,8 @@ void ControllerReorderingWindow::DrawElement() {
     }
 
     Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->InitializeMappingsMultiplayer(
-        mDeviceIndices);
-    mDeviceIndices.clear();
+        mGamepadInstanceIDs);
+        mGamepadInstanceIDs.clear();
     mCurrentPortNumber = 1;
     Hide();
 }

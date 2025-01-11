@@ -13,10 +13,10 @@ class ShipDeviceIndexMappingManager {
     ~ShipDeviceIndexMappingManager();
 
     void InitializeMappingsMultiplayer(std::vector<int32_t> sdlIndices);
-    void InitializeSDLMappingsForPort(uint8_t n64port, int32_t sdlIndex);
+    void InitializeSDLMappingsForPort(uint8_t n64port, int32_t sdlJoystickInstanceId);
     void UpdateControllerNamesFromConfig();
     std::string GetSDLControllerNameFromShipDeviceIndex(ShipDeviceIndex index);
-    void HandlePhysicalDeviceConnect(int32_t sdlInstanceID);
+    void HandlePhysicalDeviceConnect(int32_t sdlJoystickInstanceId);
     void HandlePhysicalDeviceDisconnect(int32_t sdlJoystickInstanceId);
     ShipDeviceIndex GetShipDeviceIndexFromSDLInstanceID(int32_t sdlIndex);
 
