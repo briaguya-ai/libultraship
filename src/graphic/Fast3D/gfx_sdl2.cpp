@@ -403,10 +403,9 @@ static void gfx_sdl_init(const char* game_name, const char* gfx_api_name, bool s
 #ifdef _WIN32
     // Get Windows window handle and use it to subclass the window procedure.
     // Needed to circumvent SDLs DPI scaling problems under windows (original does only scale *sometimes*).
-    SDL_SysWMinfo wmInfo;
-    SDL_VERSION(&wmInfo.version);
-    SDL_GetWindowWMInfo(wnd, &wmInfo);
-    HWND hwnd = wmInfo.info.win.window;
+    
+    // https://wiki.libsdl.org/SDL3/README/migration#sdl_syswmh
+    HWND hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(wnd), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
     SDL_WndProc = SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)gfx_sdl_wnd_proc);
 #endif
     Ship::GuiWindowInitData window_impl;
