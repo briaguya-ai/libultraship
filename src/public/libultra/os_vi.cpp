@@ -2,7 +2,12 @@
 
 extern "C" {
 
-Uint32 __lusViCallback(Uint32 interval, void* param) {
+// https://wiki.libsdl.org/SDL3/README/migration#sdl_timerh
+//     The callback passed to SDL_AddTimer() has changed parameters to:
+//     Uint32 SDLCALL TimerCallback(void *userdata, SDL_TimerID timerID, Uint32 interval);
+// https://wiki.libsdl.org/SDL3/SDL_TimerCallback
+// https://wiki.libsdl.org/SDL2/SDL_TimerCallback
+Uint32 __lusViCallback(void* userdata, SDL_TimerID timerID, Uint32 interval) {
     __OSEventState* es = &__osEventStateTab[OS_EVENT_VI];
 
     if (es && es->queue) {

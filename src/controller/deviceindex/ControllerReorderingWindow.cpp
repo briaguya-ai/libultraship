@@ -20,12 +20,13 @@ void ControllerReorderingWindow::UpdateElement() {
 int32_t ControllerReorderingWindow::GetSDLIndexFromSDLInput() {
     int32_t sdlDeviceIndex = -1;
 
+    // todo: use instance ids
     std::unordered_map<int32_t, SDL_Gamepad*> sdlControllers;
-    for (auto i = 0; i < SDL_NumJoysticks(); i++) {
-        if (SDL_IsGamepad(i)) {
-            sdlControllers[i] = SDL_OpenGamepad(i);
-        }
-    }
+    // for (auto i = 0; i < SDL_NumJoysticks(); i++) {
+    //     if (SDL_IsGamepad(i)) {
+    //         sdlControllers[i] = SDL_OpenGamepad(i);
+    //     }
+    // }
 
     for (auto [controllerIndex, controller] : sdlControllers) {
         for (int32_t button = SDL_GAMEPAD_BUTTON_SOUTH; button < SDL_GAMEPAD_BUTTON_COUNT; button++) {
@@ -64,11 +65,17 @@ void ControllerReorderingWindow::DrawElement() {
     }
 
     // if we don't have more than one controller, just close the window
+    int i, numJoysticks;
     std::vector<int32_t> connectedSdlControllerIndices;
-    for (auto i = 0; i < SDL_NumJoysticks(); i++) {
-        if (SDL_IsGamepad(i)) {
-            connectedSdlControllerIndices.push_back(i);
+    SDL_JoystickID *joysticks = SDL_GetJoysticks(&numJoysticks);
+    if (joysticks) {
+        for (i = 0; i < numJoysticks; ++i) {
+            SDL_JoystickID instanceId = joysticks[i];
+            if (SDL_IsGamepad(instanceId)) {
+                connectedSdlControllerIndices.push_back(i);
+            }
         }
+        SDL_free(joysticks);
     }
     if (connectedSdlControllerIndices.size() <= 1) {
         Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->InitializeMappingsMultiplayer(

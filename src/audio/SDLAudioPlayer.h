@@ -16,6 +16,6 @@ class SDLAudioPlayer : public AudioPlayer {
     bool DoInit();
 
   private:
-    SDL_AudioDeviceID mDevice;
+  SDL_AudioStream* mAudioStream;
 };
 } // namespace Ship

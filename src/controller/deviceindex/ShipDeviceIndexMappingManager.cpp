@@ -48,11 +48,14 @@ void ShipDeviceIndexMappingManager::InitializeSDLMappingsForPort(uint8_t n64port
         return;
     }
 
-    char guidString[33]; // SDL_GUID_LENGTH + 1 for null terminator
-    SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(sdlIndex), guidString, sizeof(guidString));
-    std::string sdlControllerName = SDL_GameControllerNameForIndex(sdlIndex) != nullptr
-                                        ? SDL_GameControllerNameForIndex(sdlIndex)
-                                        : "Game Controller";
+    // todo: instance ids
+    // char guidString[33]; // SDL_GUID_LENGTH + 1 for null terminator
+    // SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(sdlIndex), guidString, sizeof(guidString));
+    // std::string sdlControllerName = SDL_GameControllerNameForIndex(sdlIndex) != nullptr
+    //                                     ? SDL_GameControllerNameForIndex(sdlIndex)
+    //                                     : "Game Controller";
+    char guidString[33] = "guidString";
+    std::string sdlControllerName = "controllerName";
 
     // find all lus indices with this guid
     std::vector<ShipDeviceIndex> matchingGuidLusIndices;
@@ -176,11 +179,12 @@ void ShipDeviceIndexMappingManager::InitializeMappingsSinglePlayer() {
     }
 
     std::vector<int32_t> connectedSdlControllerIndices;
-    for (auto i = 0; i < SDL_NumJoysticks(); i++) {
-        if (SDL_IsGamepad(i)) {
-            connectedSdlControllerIndices.push_back(i);
-        }
-    }
+    // todo: instance ids
+    // for (auto i = 0; i < SDL_NumJoysticks(); i++) {
+    //     if (SDL_IsGamepad(i)) {
+    //         connectedSdlControllerIndices.push_back(i);
+    //     }
+    // }
 
     mShipDeviceIndexToPhysicalDeviceIndexMappings.clear();
     for (auto sdlIndex : connectedSdlControllerIndices) {

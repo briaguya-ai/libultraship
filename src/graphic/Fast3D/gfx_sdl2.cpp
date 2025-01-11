@@ -232,9 +232,9 @@ static void set_fullscreen(bool on, bool call_callback) {
 
     if (on) {
         // OTRTODO: Get mode from config.
-        SDL_DisplayMode mode;
-        if (SDL_GetDesktopDisplayMode(display_in_use, &mode) >= 0) {
-            SDL_SetWindowFullscreenMode(wnd, &mode);
+        auto mode = SDL_GetDesktopDisplayMode(display_in_use);
+        if (mode != nullptr) {
+            SDL_SetWindowFullscreenMode(wnd, mode);
         } else {
             SPDLOG_ERROR(SDL_GetError());
         }
@@ -251,10 +251,19 @@ static void set_fullscreen(bool on, bool call_callback) {
         SDL_SetWindowPosition(wnd, posX, posY);
         SDL_SetWindowSize(wnd, window_width, window_height);
     }
-    if (SDL_SetWindowFullscreen(wnd,
-                                on ? (CVarGetInteger(CVAR_SDL_WINDOWED_FULLSCREEN, 0) ? SDL_WINDOW_FULLSCREEN_DESKTOP
-                                                                                      : SDL_WINDOW_FULLSCREEN)
-                                   : 0) >= 0) {
+
+    /* todo:
+    
+    SDL_WINDOW_FULLSCREEN_DESKTOP has been removed, and you can call SDL_GetWindowFullscreenMode() 
+    to see whether an exclusive fullscreen mode will be used or the borderless fullscreen desktop mode
+    will be used when the window is fullscreen.
+    
+    https://wiki.libsdl.org/SDL3/SDL_GetWindowFullscreenMode
+    https://wiki.libsdl.org/SDL3/SDL_SetWindowFullscreenMode
+    https://wiki.libsdl.org/SDL3/SDL_GetFullscreenDisplayModes
+    */
+
+    if (SDL_SetWindowFullscreen(wnd, on)) {
         fullscreen_state = on;
     } else {
         SPDLOG_ERROR("Failed to switch from or to fullscreen mode.");
@@ -269,9 +278,8 @@ static void set_fullscreen(bool on, bool call_callback) {
 static void gfx_sdl_get_active_window_refresh_rate(uint32_t* refresh_rate) {
     int display_in_use = SDL_GetDisplayForWindow(wnd);
 
-    SDL_DisplayMode mode;
-    SDL_GetCurrentDisplayMode(display_in_use, &mode);
-    *refresh_rate = mode.refresh_rate;
+    auto mode = SDL_GetCurrentDisplayMode(display_in_use);
+    *refresh_rate = mode->refresh_rate;
 }
 
 static uint64_t previous_time;
@@ -314,14 +322,22 @@ static void gfx_sdl_init(const char* game_name, const char* gfx_api_name, bool s
     window_width = width;
     window_height = height;
 
-#if SDL_VERSION_ATLEAST(2, 24, 0)
-    /* fix DPI scaling issues on Windows */
-    SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
-#endif
+// SDL_HINT_WINDOWS_DPI_AWARENESS removed in https://github.com/libsdl-org/SDL/commit/4696c9556be690667e1783eb385bfa9267dda035
+// https://github.com/libsdl-org/SDL/pull/7145
+//     SDL 3.0 is going to be high DPI aware and officially separates screen coordinates from client pixel area
+//     The public APIs to disable high DPI support have been removed
+// 
+// #if SDL_VERSION_ATLEAST(2, 24, 0)
+//     /* fix DPI scaling issues on Windows */
+//     SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
+// #endif
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    SDL_EventState(SDL_EVENT_DROP_FILE, SDL_ENABLE);
+    // https://wiki.libsdl.org/SDL3/README/migration#sdl_eventsh
+    //     SDL_EventState() - replaced with SDL_SetEventEnabled()
+    //     SDL_GetEventState() - replaced with SDL_EventEnabled()
+    SDL_SetEventEnabled(SDL_EVENT_DROP_FILE, true);
 
 #if defined(SDL_PLATFORM_APPLE)
     bool use_opengl = strcmp(gfx_api_name, "OpenGL") == 0;
@@ -356,10 +372,13 @@ static void gfx_sdl_init(const char* game_name, const char* gfx_api_name, bool s
     char title[512];
     int len = sprintf(title, "%s (%s)", game_name, gfx_api_name);
 
+// https://wiki.libsdl.org/SDL3/README/migration#sdl_videoh
+//     The SDL_WINDOW_SHOWN flag has been removed. Windows are shown by default
+//     and can be created hidden by using the SDL_WINDOW_HIDDEN flag.
 #ifdef __IOS__
-    Uint32 flags = SDL_WINDOW_BORDERLESS | SDL_WINDOW_SHOWN;
+    Uint32 flags = SDL_WINDOW_BORDERLESS;
 #else
-    Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+    Uint32 flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
 #endif
 
     if (use_opengl) {
@@ -368,7 +387,18 @@ static void gfx_sdl_init(const char* game_name, const char* gfx_api_name, bool s
         flags = flags | SDL_WINDOW_METAL;
     }
 
-    wnd = SDL_CreateWindow(title, posX, posY, window_width, window_height, flags);
+    // https://wiki.libsdl.org/SDL3/README/migration#sdl_videoh
+    //     SDL_CreateWindow() has been simplified and no longer takes a window position. You can use
+    //     SDL_CreateWindowWithProperties() if you need to set the window position when creating it
+    SDL_PropertiesID windowProps = SDL_CreateProperties();
+    SDL_SetStringProperty(windowProps, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title);
+    SDL_SetNumberProperty(windowProps, SDL_PROP_WINDOW_CREATE_X_NUMBER, posX);
+    SDL_SetNumberProperty(windowProps, SDL_PROP_WINDOW_CREATE_Y_NUMBER, posY);
+    SDL_SetNumberProperty(windowProps, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, window_width);
+    SDL_SetNumberProperty(windowProps, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, window_height);
+    SDL_SetNumberProperty(windowProps, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, flags);
+    wnd = SDL_CreateWindowWithProperties(windowProps);
+    SDL_DestroyProperties(windowProps);
 #ifdef _WIN32
     // Get Windows window handle and use it to subclass the window procedure.
     // Needed to circumvent SDLs DPI scaling problems under windows (original does only scale *sometimes*).
@@ -387,7 +417,10 @@ static void gfx_sdl_init(const char* game_name, const char* gfx_api_name, bool s
     }
 
     if (use_opengl) {
-        SDL_GL_GetDrawableSize(wnd, &window_width, &window_height);
+        // https://wiki.libsdl.org/SDL3/README/migration#sdl_videoh
+        //     SDL_GL_GetDrawableSize() has been removed.
+        //     SDL_GetWindowSizeInPixels() can be used in its place.
+        SDL_GetWindowSizeInPixels(wnd, &window_width, &window_height);
 
         if (start_in_fullscreen) {
             set_fullscreen(true, false);
@@ -400,11 +433,26 @@ static void gfx_sdl_init(const char* game_name, const char* gfx_api_name, bool s
 
         window_impl.Opengl = { wnd, ctx };
     } else {
-        uint32_t flags = SDL_RENDERER_ACCELERATED;
+        // https://wiki.libsdl.org/SDL3/README/migration#sdl_renderh
+        //     SDL_RENDERER_ACCELERATED removed
+        //     all renderers except SDL_SOFTWARE_RENDERER are accelerated
+        // 
+        //     SDL_RENDERER_PRESENTVSYNC - replaced with SDL_PROP_RENDERER_CREATE_PRESENT_VSYNC_NUMBER
+        //     during renderer creation and SDL_PROP_RENDERER_VSYNC_NUMBER after renderer creation
+        // https://wiki.libsdl.org/SDL3/SDL_PROP_RENDERER_CREATE_PRESENT_VSYNC_NUMBER
+        // https://wiki.libsdl.org/SDL3/SDL_SetRenderVSync
+        // https://wiki.libsdl.org/SDL3/SDL_CreateRendererWithProperties
+        // https://wiki.libsdl.org/SDL2/SDL_CreateRenderer
+        //     SDL_Window * 	window 	the window where rendering is displayed.
+        //     int 	index 	the index of the rendering driver to initialize, or -1 to initialize the first one supporting the requested flags.
+        //     Uint32 	flags 	0, or one or more SDL_RendererFlags OR'd together.
+        SDL_PropertiesID rendererProps = SDL_CreateProperties();
+        SDL_SetPointerProperty(rendererProps, SDL_PROP_RENDERER_CREATE_WINDOW_POINTER, wnd);
         if (vsync_enabled) {
-            flags |= SDL_RENDERER_PRESENTVSYNC;
+            SDL_SetNumberProperty(rendererProps, SDL_PROP_RENDERER_CREATE_PRESENT_VSYNC_NUMBER, 1);
         }
-        renderer = SDL_CreateRenderer(wnd, -1, flags);
+        renderer = SDL_CreateRendererWithProperties(rendererProps);
+        SDL_DestroyProperties(rendererProps);
         if (renderer == NULL) {
             SPDLOG_ERROR("Error creating renderer: {}", SDL_GetError());
             return;
@@ -439,10 +487,15 @@ static void gfx_sdl_set_fullscreen(bool enable) {
 }
 
 static void gfx_sdl_set_cursor_visibility(bool visible) {
+    // https://wiki.libsdl.org/SDL3/README/migration#sdl_mouseh
+    //     SDL_ShowCursor() has been split into three functions:
+    //     * SDL_ShowCursor()
+    //     * SDL_HideCursor()
+    //     * SDL_CursorVisible()
     if (visible) {
-        SDL_ShowCursor(SDL_ENABLE);
+        SDL_ShowCursor();
     } else {
-        SDL_ShowCursor(SDL_DISABLE);
+        SDL_HideCursor();
     }
 }
 
@@ -451,11 +504,31 @@ static void gfx_sdl_set_mouse_pos(int32_t x, int32_t y) {
 }
 
 static void gfx_sdl_get_mouse_pos(int32_t* x, int32_t* y) {
-    SDL_GetMouseState(x, y);
+    // https://wiki.libsdl.org/SDL3/README/migration#sdl_mouseh
+    //     SDL_GetMouseState(), SDL_GetGlobalMouseState(), SDL_GetRelativeMouseState(),
+    //     SDL_WarpMouseInWindow(), and SDL_WarpMouseGlobal() all use floating point mouse
+    //     positions, to provide sub-pixel precision on platforms that support it.
+    // these were added in https://github.com/Kenix3/libultraship/pull/731 which also
+    // gets mouse positions etc. from dxgi which, as far as i know, still uses ints
+    // so for now i'm just casting the floats back to ints
+    static float fx, fy;
+    SDL_GetMouseState(&fx, &fy);
+    *x = static_cast<int>(fx);
+    *y = static_cast<int>(fy);
 }
 
 static void gfx_sdl_get_mouse_delta(int32_t* x, int32_t* y) {
-    SDL_GetRelativeMouseState(x, y);
+    // https://wiki.libsdl.org/SDL3/README/migration#sdl_mouseh
+    //     SDL_GetMouseState(), SDL_GetGlobalMouseState(), SDL_GetRelativeMouseState(),
+    //     SDL_WarpMouseInWindow(), and SDL_WarpMouseGlobal() all use floating point mouse
+    //     positions, to provide sub-pixel precision on platforms that support it.
+    // these were added in https://github.com/Kenix3/libultraship/pull/731 which also
+    // gets mouse positions etc. from dxgi which, as far as i know, still uses ints
+    // so for now i'm just casting the floats back to ints
+    static float fx, fy;
+    SDL_GetRelativeMouseState(&fx, &fy);
+    *x = static_cast<int>(fx);
+    *y = static_cast<int>(fy);
 }
 
 static void gfx_sdl_get_mouse_wheel(float* x, float* y) {
@@ -470,11 +543,15 @@ static bool gfx_sdl_get_mouse_state(uint32_t btn) {
 }
 
 static void gfx_sdl_set_mouse_capture(bool capture) {
-    SDL_SetRelativeMouseMode(static_cast<bool>(capture));
+    // https://wiki.libsdl.org/SDL3/README/migration#sdl_mouseh
+    //     SDL_SetRelativeMouseMode() - replaced with SDL_SetWindowRelativeMouseMode()
+    SDL_SetWindowRelativeMouseMode(wnd, capture);
 }
 
 static bool gfx_sdl_is_mouse_captured() {
-    return (SDL_GetRelativeMouseMode() == true);
+    // https://wiki.libsdl.org/SDL3/README/migration#sdl_mouseh
+    //     SDL_GetRelativeMouseMode() - replaced with SDL_GetWindowRelativeMouseMode()
+    return SDL_GetWindowRelativeMouseMode(wnd);
 }
 
 static void gfx_sdl_set_keyboard_callbacks(bool (*on_key_down)(int scancode), bool (*on_key_up)(int scancode),
@@ -490,7 +567,10 @@ static void gfx_sdl_set_mouse_callbacks(bool (*on_btn_down)(int btn), bool (*on_
 }
 
 static void gfx_sdl_get_dimensions(uint32_t* width, uint32_t* height, int32_t* posX, int32_t* posY) {
-    SDL_GL_GetDrawableSize(wnd, static_cast<int*>((void*)width), static_cast<int*>((void*)height));
+    // https://wiki.libsdl.org/SDL3/README/migration#sdl_videoh
+    //     SDL_GL_GetDrawableSize() has been removed.
+    //     SDL_GetWindowSizeInPixels() can be used in its place.
+    SDL_GetWindowSizeInPixels(wnd, static_cast<int*>((void*)width), static_cast<int*>((void*)height));
     SDL_GetWindowPosition(wnd, static_cast<int*>(posX), static_cast<int*>(posY));
 }
 
@@ -547,11 +627,15 @@ static void gfx_sdl_handle_single_event(SDL_Event& event) {
     switch (event.type) {
 #ifndef TARGET_WEB
         // Scancodes are broken in Emscripten SDL2: https://bugzilla.libsdl.org/show_bug.cgi?id=3259
+        
+        // https://wiki.libsdl.org/SDL3/README/migration#sdl_eventsh
+        //     The keysym field of key events has been removed to remove
+        //     one level of indirection, and sym has been renamed key.
         case SDL_EVENT_KEY_DOWN:
-            gfx_sdl_onkeydown(event.key.keysym.scancode);
+            gfx_sdl_onkeydown(event.key.scancode);
             break;
         case SDL_EVENT_KEY_UP:
-            gfx_sdl_onkeyup(event.key.keysym.scancode);
+            gfx_sdl_onkeyup(event.key.scancode);
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             gfx_sdl_on_mouse_button_down(event.button.button - 1);
@@ -564,22 +648,30 @@ static void gfx_sdl_handle_single_event(SDL_Event& event) {
             mouse_wheel_y = event.wheel.y;
             break;
 #endif
-        case SDL_WINDOWEVENT:
-            switch (event.window.event) {
-                case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-                    SDL_GL_GetDrawableSize(wnd, &window_width, &window_height);
-                    break;
-                case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-                    if (event.window.windowID == SDL_GetWindowID(wnd)) {
-                        // We listen specifically for main window close because closing main window
-                        // on macOS does not trigger SDL_Quit.
-                        gfx_sdl_close();
-                    }
-                    break;
+        // https://wiki.libsdl.org/SDL3/README/migration#sdl_eventsh
+        //     The SDL_WINDOWEVENT_* events have been moved to top level events, and SDL_WINDOWEVENT
+        //     has been removed. In general, handling this change just means checking for the individual
+        //     events instead of first checking for SDL_WINDOWEVENT and then checking for window events.
+        //     You can compare the event >= SDL_EVENT_WINDOW_FIRST and <= SDL_EVENT_WINDOW_LAST if you
+        //     need to see whether it's a window event.
+        case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+            // https://wiki.libsdl.org/SDL3/README/migration#sdl_videoh
+            //     SDL_GL_GetDrawableSize() has been removed.
+            //     SDL_GetWindowSizeInPixels() can be used in its place.
+            SDL_GetWindowSizeInPixels(wnd, &window_width, &window_height);
+            break;
+        case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+            if (event.window.windowID == SDL_GetWindowID(wnd)) {
+                // We listen specifically for main window close because closing main window
+                // on macOS does not trigger SDL_Quit.
+                gfx_sdl_close();
             }
             break;
         case SDL_EVENT_DROP_FILE:
-            Ship::Context::GetInstance()->GetConsoleVariables()->SetString(CVAR_DROPPED_FILE, event.drop.file);
+            // https://wiki.libsdl.org/SDL3/SDL_DropEvent
+            //     const char *data;   /**< The text for SDL_EVENT_DROP_TEXT and
+            //     the file name for SDL_EVENT_DROP_FILE, NULL for other events */
+            Ship::Context::GetInstance()->GetConsoleVariables()->SetString(CVAR_DROPPED_FILE, event.drop.data);
             Ship::Context::GetInstance()->GetConsoleVariables()->SetInteger(CVAR_NEW_FILE_DROPPED, 1);
             Ship::Context::GetInstance()->GetConsoleVariables()->Save();
             break;
