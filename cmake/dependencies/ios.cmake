@@ -1,15 +1,15 @@
 include(FetchContent)
 
-#=================== SDL2 ===================
-find_package(SDL2 QUIET)
-if (NOT ${SDL2_FOUND})
+#=================== SDL3 ===================
+find_package(SDL3 QUIET)
+if (NOT ${SDL3_FOUND})
     FetchContent_Declare(
-        SDL2
+        SDL3
         GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-        GIT_TAG release-2.28.1
+        GIT_TAG preview-3.1.8
         OVERRIDE_FIND_PACKAGE
     )
-    FetchContent_MakeAvailable(SDL2)
+    FetchContent_MakeAvailable(SDL3)
 endif()
 
 #=================== nlohmann-json ===================
