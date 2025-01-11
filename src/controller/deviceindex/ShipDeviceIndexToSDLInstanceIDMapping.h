@@ -6,21 +6,21 @@
 
 namespace Ship {
 
-class ShipDeviceIndexToSDLDeviceIndexMapping : public ShipDeviceIndexToPhysicalDeviceIndexMapping {
+class ShipDeviceIndexToSDLInstanceIDMapping : public ShipDeviceIndexToPhysicalDeviceIndexMapping {
   public:
-    ShipDeviceIndexToSDLDeviceIndexMapping(ShipDeviceIndex shipDeviceIndex, int32_t sdlDeviceIndex,
+    ShipDeviceIndexToSDLInstanceIDMapping(ShipDeviceIndex shipDeviceIndex, int32_t sdlInstanceID,
                                            std::string sdlJoystickGuid, std::string sdlControllerName,
                                            int32_t stickAxisThresholdPercentage,
                                            int32_t triggerAxisThresholdPercentage);
-    ~ShipDeviceIndexToSDLDeviceIndexMapping();
+    ~ShipDeviceIndexToSDLInstanceIDMapping();
     std::string GetJoystickGUID();
     std::string GetSDLControllerName();
 
     void SaveToConfig() override;
     void EraseFromConfig() override;
 
-    int32_t GetSDLDeviceIndex();
-    void SetSDLDeviceIndex(int32_t index);
+    int32_t GetSDLInstanceID();
+    void SetSDLInstanceID(int32_t instanceID);
 
     int32_t GetStickAxisThresholdPercentage();
     void SetStickAxisThresholdPercentage(int32_t stickAxisThresholdPercentage);
@@ -29,7 +29,7 @@ class ShipDeviceIndexToSDLDeviceIndexMapping : public ShipDeviceIndexToPhysicalD
     void SetTriggerAxisThresholdPercentage(int32_t triggerAxisThresholdPercentage);
 
   private:
-    int32_t mSDLDeviceIndex;
+    int32_t mSDLInstanceID;
     std::string mSDLJoystickGUID;
     std::string mSDLControllerName;
     int32_t mStickAxisThresholdPercentage;

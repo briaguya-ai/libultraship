@@ -9,7 +9,7 @@
 #include "public/bridge/consolevariablebridge.h"
 #include "utils/StringHelper.h"
 #include "Context.h"
-#include "controller/deviceindex/ShipDeviceIndexToSDLDeviceIndexMapping.h"
+#include "controller/deviceindex/ShipDeviceIndexToSDLInstanceIDMapping.h"
 
 #include "controller/controldevice/controller/mapping/keyboard/KeyboardScancodes.h"
 #include "controller/controldevice/controller/mapping/mouse/WheelHandler.h"
@@ -132,12 +132,12 @@ AxisDirectionMappingFactory::CreateDefaultKeyboardAxisDirectionMappings(uint8_t 
 std::vector<std::shared_ptr<ControllerAxisDirectionMapping>>
 AxisDirectionMappingFactory::CreateDefaultSDLAxisDirectionMappings(ShipDeviceIndex shipDeviceIndex, uint8_t portIndex,
                                                                    StickIndex stickIndex) {
-    auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(
+    auto sdlInstanceIDMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(
         Context::GetInstance()
             ->GetControlDeck()
             ->GetDeviceIndexMappingManager()
             ->GetDeviceIndexMappingFromShipDeviceIndex(shipDeviceIndex));
-    if (sdlIndexMapping == nullptr) {
+    if (sdlInstanceIDMapping == nullptr) {
         return std::vector<std::shared_ptr<ControllerAxisDirectionMapping>>();
     }
 
@@ -162,14 +162,14 @@ AxisDirectionMappingFactory::CreateAxisDirectionMappingFromSDLInput(uint8_t port
     std::shared_ptr<ControllerAxisDirectionMapping> mapping = nullptr;
     for (auto [lusIndex, indexMapping] :
          Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-        auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
+        auto sdlInstanceIDMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(indexMapping);
 
-        if (sdlIndexMapping == nullptr) {
-            // this LUS index isn't mapped to an SDL index
+        if (sdlInstanceIDMapping == nullptr) {
+            // this LUS index isn't mapped to an SDL instance id
             continue;
         }
 
-        auto sdlIndex = sdlIndexMapping->GetSDLDeviceIndex();
+        auto sdlIndex = sdlInstanceIDMapping->GetSDLInstanceID();
 
         if (!SDL_IsGamepad(sdlIndex)) {
             // this SDL device isn't a game controller

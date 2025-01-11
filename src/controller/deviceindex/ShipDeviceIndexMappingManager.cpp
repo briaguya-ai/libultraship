@@ -61,7 +61,7 @@ void ShipDeviceIndexMappingManager::InitializeSDLMappingsForPort(uint8_t n64port
     std::vector<ShipDeviceIndex> matchingGuidLusIndices;
     auto mappings = GetAllDeviceIndexMappingsFromConfig();
     for (auto [lusIndex, mapping] : mappings) {
-        auto sdlMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
+        auto sdlMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(mapping);
         if (sdlMapping == nullptr) {
             continue;
         }
@@ -79,9 +79,9 @@ void ShipDeviceIndexMappingManager::InitializeSDLMappingsForPort(uint8_t n64port
         }
 
         auto mapping = mappings[lusIndex];
-        auto sdlMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
+        auto sdlMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(mapping);
 
-        sdlMapping->SetSDLDeviceIndex(sdlIndex);
+        sdlMapping->SetSDLInstanceID(sdlIndex);
         SetShipDeviceIndexToPhysicalDeviceIndexMapping(sdlMapping);
 
         // if we have mappings for this LUS device on this port, we're good and don't need to move any mappings
@@ -120,7 +120,7 @@ void ShipDeviceIndexMappingManager::InitializeSDLMappingsForPort(uint8_t n64port
 
     // if we didn't find a mapping for this guid, make defaults
     auto lusIndex = GetLowestShipDeviceIndexWithNoAssociatedButtonOrAxisDirectionMappings();
-    auto deviceIndexMapping = std::make_shared<ShipDeviceIndexToSDLDeviceIndexMapping>(lusIndex, sdlIndex, guidString,
+    auto deviceIndexMapping = std::make_shared<ShipDeviceIndexToSDLInstanceIDMapping>(lusIndex, sdlIndex, guidString,
                                                                                        sdlControllerName, 25, 25);
     mShipDeviceIndexToSDLControllerNames[lusIndex] = sdlControllerName;
     deviceIndexMapping->SaveToConfig();
@@ -135,12 +135,12 @@ ShipDeviceIndexMappingManager::CreateDeviceIndexMappingFromConfig(std::string id
     const std::string mappingClass =
         CVarGetString(StringHelper::Sprintf("%s.DeviceMappingClass", mappingCvarKey.c_str()).c_str(), "");
 
-    if (mappingClass == "ShipDeviceIndexToSDLDeviceIndexMapping") {
+    if (mappingClass == "ShipDeviceIndexToSDLInstanceIDMapping") {
         int32_t shipDeviceIndex =
             CVarGetInteger(StringHelper::Sprintf("%s.ShipDeviceIndex", mappingCvarKey.c_str()).c_str(), -1);
 
-        int32_t sdlDeviceIndex =
-            CVarGetInteger(StringHelper::Sprintf("%s.SDLDeviceIndex", mappingCvarKey.c_str()).c_str(), -1);
+        int32_t sdlInstanceID =
+            CVarGetInteger(StringHelper::Sprintf("%s.SDLInstanceID", mappingCvarKey.c_str()).c_str(), -1);
 
         std::string sdlJoystickGuid =
             CVarGetString(StringHelper::Sprintf("%s.SDLJoystickGUID", mappingCvarKey.c_str()).c_str(), "");
@@ -160,8 +160,8 @@ ShipDeviceIndexMappingManager::CreateDeviceIndexMappingFromConfig(std::string id
             return nullptr;
         }
 
-        return std::make_shared<ShipDeviceIndexToSDLDeviceIndexMapping>(
-            static_cast<ShipDeviceIndex>(shipDeviceIndex), sdlDeviceIndex, sdlJoystickGuid, sdlControllerName,
+        return std::make_shared<ShipDeviceIndexToSDLInstanceIDMapping>(
+            static_cast<ShipDeviceIndex>(shipDeviceIndex), sdlInstanceID, sdlJoystickGuid, sdlControllerName,
             stickAxisThreshold, triggerAxisThreshold);
     }
 
@@ -206,7 +206,7 @@ void ShipDeviceIndexMappingManager::UpdateControllerNamesFromConfig() {
         const std::string mappingClass =
             CVarGetString(StringHelper::Sprintf("%s.DeviceMappingClass", mappingCvarKey.c_str()).c_str(), "");
 
-        if (mappingClass == "ShipDeviceIndexToSDLDeviceIndexMapping") {
+        if (mappingClass == "ShipDeviceIndexToSDLInstanceIDMapping") {
             mShipDeviceIndexToSDLControllerNames[static_cast<ShipDeviceIndex>(
                 CVarGetInteger(StringHelper::Sprintf("%s.ShipDeviceIndex", mappingCvarKey.c_str()).c_str(), -1))] =
                 CVarGetString(StringHelper::Sprintf("%s.SDLControllerName", mappingCvarKey.c_str()).c_str(), "");
@@ -218,7 +218,7 @@ std::string ShipDeviceIndexMappingManager::GetSDLControllerNameFromShipDeviceInd
     return mShipDeviceIndexToSDLControllerNames[index];
 }
 
-int32_t ShipDeviceIndexMappingManager::GetNewSDLDeviceIndexFromShipDeviceIndex(ShipDeviceIndex lusIndex) {
+int32_t ShipDeviceIndexMappingManager::GetNewSDLInstanceIDFromShipDeviceIndex(ShipDeviceIndex lusIndex) {
     for (uint8_t portIndex = 0; portIndex < 4; portIndex++) {
         auto controller = Context::GetInstance()->GetControlDeck()->GetControllerByPort(portIndex);
 
@@ -233,7 +233,7 @@ int32_t ShipDeviceIndexMappingManager::GetNewSDLDeviceIndexFromShipDeviceIndex(S
                     continue;
                 }
 
-                return sdlButtonMapping->GetCurrentSDLDeviceIndex();
+                return sdlButtonMapping->GetCurrentSDLInstanceID();
             }
         }
 
@@ -249,14 +249,14 @@ int32_t ShipDeviceIndexMappingManager::GetNewSDLDeviceIndexFromShipDeviceIndex(S
                         continue;
                     }
 
-                    return sdlAxisDirectionMapping->GetCurrentSDLDeviceIndex();
+                    return sdlAxisDirectionMapping->GetCurrentSDLInstanceID();
                 }
             }
         }
 
         auto sdlGyroMapping = std::dynamic_pointer_cast<SDLMapping>(controller->GetGyro()->GetGyroMapping());
         if (sdlGyroMapping != nullptr && sdlGyroMapping->GetShipDeviceIndex() == lusIndex) {
-            return sdlGyroMapping->GetCurrentSDLDeviceIndex();
+            return sdlGyroMapping->GetCurrentSDLInstanceID();
         }
 
         for (auto [id, rumbleMapping] : controller->GetRumble()->GetAllRumbleMappings()) {
@@ -269,7 +269,7 @@ int32_t ShipDeviceIndexMappingManager::GetNewSDLDeviceIndexFromShipDeviceIndex(S
                 continue;
             }
 
-            return sdlRumbleMapping->GetCurrentSDLDeviceIndex();
+            return sdlRumbleMapping->GetCurrentSDLInstanceID();
         }
 
         for (auto [id, ledMapping] : controller->GetLED()->GetAllLEDMappings()) {
@@ -282,7 +282,7 @@ int32_t ShipDeviceIndexMappingManager::GetNewSDLDeviceIndexFromShipDeviceIndex(S
                 continue;
             }
 
-            return sdlLEDMapping->GetCurrentSDLDeviceIndex();
+            return sdlLEDMapping->GetCurrentSDLInstanceID();
         }
     }
 
@@ -290,12 +290,12 @@ int32_t ShipDeviceIndexMappingManager::GetNewSDLDeviceIndexFromShipDeviceIndex(S
     return -1;
 }
 
-void ShipDeviceIndexMappingManager::HandlePhysicalDeviceConnect(int32_t sdlDeviceIndex) {
+void ShipDeviceIndexMappingManager::HandlePhysicalDeviceConnect(int32_t sdlInstanceID) {
     if (!mIsInitialized) {
         return;
     }
 
-    if (!SDL_IsGamepad(sdlDeviceIndex)) {
+    if (!SDL_IsGamepad(sdlInstanceID)) {
         return;
     }
 
@@ -320,18 +320,18 @@ void ShipDeviceIndexMappingManager::HandlePhysicalDeviceConnect(int32_t sdlDevic
         }
 
         for (auto [lusIndex, mapping] : mShipDeviceIndexToPhysicalDeviceIndexMappings) {
-            auto sdlMapping = dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
+            auto sdlMapping = dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(mapping);
             if (sdlMapping == nullptr) {
                 continue;
             }
 
             if (alreadyConnectedDevices.contains(lusIndex)) {
-                sdlMapping->SetSDLDeviceIndex(GetNewSDLDeviceIndexFromShipDeviceIndex(lusIndex));
+                sdlMapping->SetSDLInstanceID(GetNewSDLInstanceIDFromShipDeviceIndex(lusIndex));
                 sdlMapping->SaveToConfig();
             }
         }
 
-        InitializeSDLMappingsForPort(0, sdlDeviceIndex);
+        InitializeSDLMappingsForPort(0, sdlInstanceID);
         return;
     } else {
         for (uint8_t portIndex = 0; portIndex < 4; portIndex++) {
@@ -353,7 +353,7 @@ void ShipDeviceIndexMappingManager::HandlePhysicalDeviceConnect(int32_t sdlDevic
                 continue;
             }
 
-            InitializeSDLMappingsForPort(portIndex, sdlDeviceIndex);
+            InitializeSDLMappingsForPort(portIndex, sdlInstanceID);
             return;
         }
     }
@@ -380,18 +380,18 @@ void ShipDeviceIndexMappingManager::HandlePhysicalDeviceDisconnectSinglePlayer(i
     }
 
     for (auto [lusIndex, mapping] : mShipDeviceIndexToPhysicalDeviceIndexMappings) {
-        auto sdlMapping = dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
+        auto sdlMapping = dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(mapping);
         if (sdlMapping == nullptr) {
             continue;
         }
 
         if (lusIndex == lusIndexOfPhysicalDeviceThatHasBeenDisconnected) {
-            sdlMapping->SetSDLDeviceIndex(-1);
+            sdlMapping->SetSDLInstanceID(-1);
             sdlMapping->SaveToConfig();
             continue;
         }
 
-        sdlMapping->SetSDLDeviceIndex(GetNewSDLDeviceIndexFromShipDeviceIndex(lusIndex));
+        sdlMapping->SetSDLInstanceID(GetNewSDLInstanceIDFromShipDeviceIndex(lusIndex));
         sdlMapping->SaveToConfig();
     }
 
@@ -405,10 +405,10 @@ void ShipDeviceIndexMappingManager::HandlePhysicalDeviceDisconnectSinglePlayer(i
                 ->GetControlDeck()
                 ->GetDeviceIndexMappingManager()
                 ->GetAllDeviceIndexMappingsFromConfig()[lusIndexOfPhysicalDeviceThatHasBeenDisconnected];
-        auto sdlIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(deviceMapping);
-        if (sdlIndexMapping != nullptr) {
+        auto sdlInstanceIDMapping = std::static_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(deviceMapping);
+        if (sdlInstanceIDMapping != nullptr) {
             Context::GetInstance()->GetWindow()->GetGui()->GetGameOverlay()->TextDrawNotification(
-                5, true, "%s disconnected", sdlIndexMapping->GetSDLControllerName().c_str());
+                5, true, "%s disconnected", sdlInstanceIDMapping->GetSDLControllerName().c_str());
         }
     }
 
@@ -436,13 +436,13 @@ void ShipDeviceIndexMappingManager::HandlePhysicalDeviceDisconnectMultiplayer(in
     }
 
     for (auto [lusIndex, mapping] : mShipDeviceIndexToPhysicalDeviceIndexMappings) {
-        auto sdlMapping = dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
+        auto sdlMapping = dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(mapping);
         if (sdlMapping == nullptr) {
             continue;
         }
 
         if (lusIndex == lusIndexOfPhysicalDeviceThatHasBeenDisconnected) {
-            sdlMapping->SetSDLDeviceIndex(-1);
+            sdlMapping->SetSDLInstanceID(-1);
             sdlMapping->SaveToConfig();
             auto controllerDisconnectedWindow = std::dynamic_pointer_cast<ControllerDisconnectedWindow>(
                 Context::GetInstance()->GetWindow()->GetGui()->GetGuiWindow("Controller Disconnected"));
@@ -454,21 +454,21 @@ void ShipDeviceIndexMappingManager::HandlePhysicalDeviceDisconnectMultiplayer(in
             continue;
         }
 
-        sdlMapping->SetSDLDeviceIndex(GetNewSDLDeviceIndexFromShipDeviceIndex(lusIndex));
+        sdlMapping->SetSDLInstanceID(GetNewSDLInstanceIDFromShipDeviceIndex(lusIndex));
         sdlMapping->SaveToConfig();
     }
 
     RemoveShipDeviceIndexToPhysicalDeviceIndexMapping(lusIndexOfPhysicalDeviceThatHasBeenDisconnected);
 }
 
-ShipDeviceIndex ShipDeviceIndexMappingManager::GetShipDeviceIndexFromSDLDeviceIndex(int32_t sdlIndex) {
+ShipDeviceIndex ShipDeviceIndexMappingManager::GetShipDeviceIndexFromSDLInstanceID(int32_t sdlIndex) {
     for (auto [lusIndex, mapping] : mShipDeviceIndexToPhysicalDeviceIndexMappings) {
-        auto sdlMapping = dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
+        auto sdlMapping = dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(mapping);
         if (sdlMapping == nullptr) {
             continue;
         }
 
-        if (sdlMapping->GetSDLDeviceIndex() == sdlIndex) {
+        if (sdlMapping->GetSDLInstanceID() == sdlIndex) {
             return lusIndex;
         }
     }

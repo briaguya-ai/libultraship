@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ShipDeviceIndexToSDLDeviceIndexMapping.h"
+#include "ShipDeviceIndexToSDLInstanceIDMapping.h"
 
 #include <unordered_map>
 #include <memory>
@@ -16,9 +16,9 @@ class ShipDeviceIndexMappingManager {
     void InitializeSDLMappingsForPort(uint8_t n64port, int32_t sdlIndex);
     void UpdateControllerNamesFromConfig();
     std::string GetSDLControllerNameFromShipDeviceIndex(ShipDeviceIndex index);
-    void HandlePhysicalDeviceConnect(int32_t sdlDeviceIndex);
+    void HandlePhysicalDeviceConnect(int32_t sdlInstanceID);
     void HandlePhysicalDeviceDisconnect(int32_t sdlJoystickInstanceId);
-    ShipDeviceIndex GetShipDeviceIndexFromSDLDeviceIndex(int32_t sdlIndex);
+    ShipDeviceIndex GetShipDeviceIndexFromSDLInstanceID(int32_t sdlIndex);
 
     std::shared_ptr<ShipDeviceIndexToPhysicalDeviceIndexMapping> CreateDeviceIndexMappingFromConfig(std::string id);
 
@@ -43,7 +43,7 @@ class ShipDeviceIndexMappingManager {
     std::unordered_map<ShipDeviceIndex, std::shared_ptr<ShipDeviceIndexToPhysicalDeviceIndexMapping>>
         mShipDeviceIndexToPhysicalDeviceIndexMappings;
     std::unordered_map<ShipDeviceIndex, std::string> mShipDeviceIndexToSDLControllerNames;
-    int32_t GetNewSDLDeviceIndexFromShipDeviceIndex(ShipDeviceIndex lusIndex);
+    int32_t GetNewSDLInstanceIDFromShipDeviceIndex(ShipDeviceIndex lusIndex);
     ShipDeviceIndex GetShipDeviceIndexOfDisconnectedPhysicalDevice(int32_t sdlJoystickInstanceId);
     uint8_t GetPortIndexOfDisconnectedPhysicalDevice(int32_t sdlJoystickInstanceId);
     void HandlePhysicalDeviceDisconnectSinglePlayer(int32_t sdlJoystickInstanceId);

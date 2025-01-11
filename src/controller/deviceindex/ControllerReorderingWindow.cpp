@@ -18,7 +18,7 @@ void ControllerReorderingWindow::UpdateElement() {
 }
 
 int32_t ControllerReorderingWindow::GetSDLIndexFromSDLInput() {
-    int32_t sdlDeviceIndex = -1;
+    int32_t sdlInstanceID = -1;
 
     // todo: use instance ids
     std::unordered_map<int32_t, SDL_Gamepad*> sdlControllers;
@@ -31,12 +31,12 @@ int32_t ControllerReorderingWindow::GetSDLIndexFromSDLInput() {
     for (auto [controllerIndex, controller] : sdlControllers) {
         for (int32_t button = SDL_GAMEPAD_BUTTON_SOUTH; button < SDL_GAMEPAD_BUTTON_COUNT; button++) {
             if (SDL_GetGamepadButton(controller, static_cast<SDL_GamepadButton>(button))) {
-                sdlDeviceIndex = controllerIndex;
+                sdlInstanceID = controllerIndex;
                 break;
             }
         }
 
-        if (sdlDeviceIndex != -1) {
+        if (sdlInstanceID != -1) {
             break;
         }
 
@@ -44,7 +44,7 @@ int32_t ControllerReorderingWindow::GetSDLIndexFromSDLInput() {
             const auto axis = static_cast<SDL_GamepadAxis>(i);
             const auto axisValue = SDL_GetGamepadAxis(controller, axis) / 32767.0f;
             if (axisValue < -0.7f || axisValue > 0.7f) {
-                sdlDeviceIndex = controllerIndex;
+                sdlInstanceID = controllerIndex;
                 break;
             }
         }
@@ -54,7 +54,7 @@ int32_t ControllerReorderingWindow::GetSDLIndexFromSDLInput() {
         SDL_CloseGamepad(controller);
     }
 
-    return sdlDeviceIndex;
+    return sdlInstanceID;
 }
 
 void ControllerReorderingWindow::DrawElement() {

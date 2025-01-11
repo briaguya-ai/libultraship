@@ -313,9 +313,9 @@ void InputEditorWindow::DrawButtonLineEditMappingButton(uint8_t port, CONTROLLER
                             ->GetControlDeck()
                             ->GetDeviceIndexMappingManager()
                             ->GetDeviceIndexMappingFromShipDeviceIndex(mapping->GetShipDeviceIndex());
-    auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
+    auto sdlInstanceIDMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(indexMapping);
 
-    if (sdlIndexMapping != nullptr && sdlAxisDirectionToButtonMapping != nullptr) {
+    if (sdlInstanceIDMapping != nullptr && sdlAxisDirectionToButtonMapping != nullptr) {
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
         auto buttonColor = ImGui::GetStyleColorVec4(ImGuiCol_Button);
         auto buttonHoveredColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered);
@@ -344,14 +344,14 @@ void InputEditorWindow::DrawButtonLineEditMappingButton(uint8_t port, CONTROLLER
             if (sdlAxisDirectionToButtonMapping->AxisIsStick()) {
                 ImGui::Text("Stick axis threshold:");
 
-                int32_t stickAxisThreshold = sdlIndexMapping->GetStickAxisThresholdPercentage();
+                int32_t stickAxisThreshold = sdlInstanceIDMapping->GetStickAxisThresholdPercentage();
                 if (stickAxisThreshold == 0) {
                     ImGui::BeginDisabled();
                 }
                 ImGui::PushButtonRepeat(true);
                 if (ImGui::Button(StringHelper::Sprintf("-##Stick Axis Threshold%s", id.c_str()).c_str())) {
-                    sdlIndexMapping->SetStickAxisThresholdPercentage(stickAxisThreshold - 1);
-                    sdlIndexMapping->SaveToConfig();
+                    sdlInstanceIDMapping->SetStickAxisThresholdPercentage(stickAxisThreshold - 1);
+                    sdlInstanceIDMapping->SaveToConfig();
                 }
                 ImGui::PopButtonRepeat();
                 if (stickAxisThreshold == 0) {
@@ -361,8 +361,8 @@ void InputEditorWindow::DrawButtonLineEditMappingButton(uint8_t port, CONTROLLER
                 ImGui::SetNextItemWidth(SCALE_IMGUI_SIZE(160.0f));
                 if (ImGui::SliderInt(StringHelper::Sprintf("##Stick Axis Threshold%s", id.c_str()).c_str(),
                                      &stickAxisThreshold, 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp)) {
-                    sdlIndexMapping->SetStickAxisThresholdPercentage(stickAxisThreshold);
-                    sdlIndexMapping->SaveToConfig();
+                    sdlInstanceIDMapping->SetStickAxisThresholdPercentage(stickAxisThreshold);
+                    sdlInstanceIDMapping->SaveToConfig();
                 }
                 ImGui::SameLine(0.0f, 0.0f);
                 if (stickAxisThreshold == 100) {
@@ -370,8 +370,8 @@ void InputEditorWindow::DrawButtonLineEditMappingButton(uint8_t port, CONTROLLER
                 }
                 ImGui::PushButtonRepeat(true);
                 if (ImGui::Button(StringHelper::Sprintf("+##Stick Axis Threshold%s", id.c_str()).c_str())) {
-                    sdlIndexMapping->SetStickAxisThresholdPercentage(stickAxisThreshold + 1);
-                    sdlIndexMapping->SaveToConfig();
+                    sdlInstanceIDMapping->SetStickAxisThresholdPercentage(stickAxisThreshold + 1);
+                    sdlInstanceIDMapping->SaveToConfig();
                 }
                 ImGui::PopButtonRepeat();
                 if (stickAxisThreshold == 100) {
@@ -382,14 +382,14 @@ void InputEditorWindow::DrawButtonLineEditMappingButton(uint8_t port, CONTROLLER
             if (sdlAxisDirectionToButtonMapping->AxisIsTrigger()) {
                 ImGui::Text("Trigger axis threshold:");
 
-                int32_t triggerAxisThreshold = sdlIndexMapping->GetTriggerAxisThresholdPercentage();
+                int32_t triggerAxisThreshold = sdlInstanceIDMapping->GetTriggerAxisThresholdPercentage();
                 if (triggerAxisThreshold == 0) {
                     ImGui::BeginDisabled();
                 }
                 ImGui::PushButtonRepeat(true);
                 if (ImGui::Button(StringHelper::Sprintf("-##Trigger Axis Threshold%s", id.c_str()).c_str())) {
-                    sdlIndexMapping->SetTriggerAxisThresholdPercentage(triggerAxisThreshold - 1);
-                    sdlIndexMapping->SaveToConfig();
+                    sdlInstanceIDMapping->SetTriggerAxisThresholdPercentage(triggerAxisThreshold - 1);
+                    sdlInstanceIDMapping->SaveToConfig();
                 }
                 ImGui::PopButtonRepeat();
                 if (triggerAxisThreshold == 0) {
@@ -399,8 +399,8 @@ void InputEditorWindow::DrawButtonLineEditMappingButton(uint8_t port, CONTROLLER
                 ImGui::SetNextItemWidth(SCALE_IMGUI_SIZE(160.0f));
                 if (ImGui::SliderInt(StringHelper::Sprintf("##Trigger Axis Threshold%s", id.c_str()).c_str(),
                                      &triggerAxisThreshold, 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp)) {
-                    sdlIndexMapping->SetTriggerAxisThresholdPercentage(triggerAxisThreshold);
-                    sdlIndexMapping->SaveToConfig();
+                    sdlInstanceIDMapping->SetTriggerAxisThresholdPercentage(triggerAxisThreshold);
+                    sdlInstanceIDMapping->SaveToConfig();
                 }
                 ImGui::SameLine(0.0f, 0.0f);
                 if (triggerAxisThreshold == 100) {
@@ -408,8 +408,8 @@ void InputEditorWindow::DrawButtonLineEditMappingButton(uint8_t port, CONTROLLER
                 }
                 ImGui::PushButtonRepeat(true);
                 if (ImGui::Button(StringHelper::Sprintf("+##Trigger Axis Threshold%s", id.c_str()).c_str())) {
-                    sdlIndexMapping->SetTriggerAxisThresholdPercentage(triggerAxisThreshold + 1);
-                    sdlIndexMapping->SaveToConfig();
+                    sdlInstanceIDMapping->SetTriggerAxisThresholdPercentage(triggerAxisThreshold + 1);
+                    sdlInstanceIDMapping->SaveToConfig();
                 }
                 ImGui::PopButtonRepeat();
                 if (triggerAxisThreshold == 100) {
@@ -1406,22 +1406,22 @@ void InputEditorWindow::DrawDeviceVisibilityButtons() {
                                         ->GetControlDeck()
                                         ->GetDeviceIndexMappingManager()
                                         ->GetAllDeviceIndexMappingsFromConfig()) {
-        auto sdlIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
-        if (sdlIndexMapping == nullptr) {
+        auto sdlInstanceIDMapping = std::static_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(mapping);
+        if (sdlInstanceIDMapping == nullptr) {
             continue;
         }
 
-        indexMappings[lusIndex] = { sdlIndexMapping->GetSDLControllerName(), -1 };
+        indexMappings[lusIndex] = { sdlInstanceIDMapping->GetSDLControllerName(), -1 };
     }
 
     for (auto [lusIndex, mapping] :
          Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-        auto sdlIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
-        if (sdlIndexMapping == nullptr) {
+        auto sdlInstanceIDMapping = std::static_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(mapping);
+        if (sdlInstanceIDMapping == nullptr) {
             continue;
         }
 
-        indexMappings[lusIndex] = { sdlIndexMapping->GetSDLControllerName(), sdlIndexMapping->GetSDLDeviceIndex() };
+        indexMappings[lusIndex] = { sdlInstanceIDMapping->GetSDLControllerName(), sdlInstanceIDMapping->GetSDLInstanceID() };
     }
 
     auto keyboardButtonColor = ImGui::GetStyleColorVec4(ImGuiCol_Button);
@@ -1595,12 +1595,12 @@ void InputEditorWindow::DrawSetDefaultsButton(uint8_t portIndex) {
         std::map<ShipDeviceIndex, std::pair<std::string, int32_t>> indexMappings;
         for (auto [lusIndex, mapping] :
              Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-            auto sdlIndexMapping = std::static_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(mapping);
-            if (sdlIndexMapping == nullptr) {
+            auto sdlInstanceIDMapping = std::static_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(mapping);
+            if (sdlInstanceIDMapping == nullptr) {
                 continue;
             }
 
-            indexMappings[lusIndex] = { sdlIndexMapping->GetSDLControllerName(), sdlIndexMapping->GetSDLDeviceIndex() };
+            indexMappings[lusIndex] = { sdlInstanceIDMapping->GetSDLControllerName(), sdlInstanceIDMapping->GetSDLInstanceID() };
         }
 
         bool shouldClose = false;

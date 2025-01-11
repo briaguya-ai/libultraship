@@ -28,13 +28,13 @@ void SDLAxisDirectionToButtonMapping::UpdatePad(CONTROLLERBUTTONS_T& padButtons)
                             ->GetControlDeck()
                             ->GetDeviceIndexMappingManager()
                             ->GetDeviceIndexMappingFromShipDeviceIndex(ControllerInputMapping::mShipDeviceIndex);
-    auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
+    auto sdlInstanceIDMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(indexMapping);
 
-    if (sdlIndexMapping != nullptr) {
+    if (sdlInstanceIDMapping != nullptr) {
         if (AxisIsStick()) {
-            axisThresholdPercentage = sdlIndexMapping->GetStickAxisThresholdPercentage();
+            axisThresholdPercentage = sdlInstanceIDMapping->GetStickAxisThresholdPercentage();
         } else if (AxisIsTrigger()) {
-            axisThresholdPercentage = sdlIndexMapping->GetTriggerAxisThresholdPercentage();
+            axisThresholdPercentage = sdlInstanceIDMapping->GetTriggerAxisThresholdPercentage();
         }
     }
 

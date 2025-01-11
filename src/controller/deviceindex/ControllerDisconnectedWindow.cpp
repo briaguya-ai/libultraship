@@ -20,19 +20,19 @@ void ControllerDisconnectedWindow::UpdateElement() {
         // from https://wiki.libsdl.org/SDL2/SDL_GamepadDeviceEvent: which - the joystick device index for
         // the SDL_EVENT_GAMEPAD_ADDED event
         Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->HandlePhysicalDeviceConnect(
-            event.cdevice.which);
+            event.gdevice.which);
     }
 
     while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_EVENT_GAMEPAD_REMOVED, SDL_EVENT_GAMEPAD_REMOVED) > 0) {
         // from https://wiki.libsdl.org/SDL2/SDL_GamepadDeviceEvent: which - the [...] instance id for the
         // SDL_EVENT_GAMEPAD_REMOVED [...] event
         Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->HandlePhysicalDeviceDisconnect(
-            event.cdevice.which);
+            event.gdevice.which);
     }
 }
 
 int32_t ControllerDisconnectedWindow::GetSDLIndexFromSDLInput() {
-    int32_t sdlDeviceIndex = -1;
+    int32_t sdlInstanceID = -1;
 
     std::unordered_map<int32_t, SDL_Gamepad*> sdlControllers;
     // todo: use instance ids
@@ -45,12 +45,12 @@ int32_t ControllerDisconnectedWindow::GetSDLIndexFromSDLInput() {
     for (auto [controllerIndex, controller] : sdlControllers) {
         for (int32_t button = SDL_GAMEPAD_BUTTON_SOUTH; button < SDL_GAMEPAD_BUTTON_COUNT; button++) {
             if (SDL_GetGamepadButton(controller, static_cast<SDL_GamepadButton>(button))) {
-                sdlDeviceIndex = controllerIndex;
+                sdlInstanceID = controllerIndex;
                 break;
             }
         }
 
-        if (sdlDeviceIndex != -1) {
+        if (sdlInstanceID != -1) {
             break;
         }
 
@@ -58,7 +58,7 @@ int32_t ControllerDisconnectedWindow::GetSDLIndexFromSDLInput() {
             const auto axis = static_cast<SDL_GamepadAxis>(i);
             const auto axisValue = SDL_GetGamepadAxis(controller, axis) / 32767.0f;
             if (axisValue < -0.7f || axisValue > 0.7f) {
-                sdlDeviceIndex = controllerIndex;
+                sdlInstanceID = controllerIndex;
                 break;
             }
         }
@@ -68,7 +68,7 @@ int32_t ControllerDisconnectedWindow::GetSDLIndexFromSDLInput() {
         SDL_CloseGamepad(controller);
     }
 
-    return sdlDeviceIndex;
+    return sdlInstanceID;
 }
 
 void ControllerDisconnectedWindow::DrawKnownControllerDisconnected() {
@@ -78,7 +78,7 @@ void ControllerDisconnectedWindow::DrawKnownControllerDisconnected() {
 
     auto index = GetSDLIndexFromSDLInput();
     if (index != -1 &&
-        Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetShipDeviceIndexFromSDLDeviceIndex(
+        Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetShipDeviceIndexFromSDLInstanceID(
             index) == ShipDeviceIndex::Max) {
         Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->InitializeSDLMappingsForPort(
             mPortIndexOfDisconnectedController, index);

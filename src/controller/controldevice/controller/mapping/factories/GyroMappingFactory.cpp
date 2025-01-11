@@ -4,7 +4,7 @@
 #include "utils/StringHelper.h"
 #include "libultraship/libultra/controller.h"
 #include "Context.h"
-#include "controller/deviceindex/ShipDeviceIndexToSDLDeviceIndexMapping.h"
+#include "controller/deviceindex/ShipDeviceIndexToSDLInstanceIDMapping.h"
 
 namespace Ship {
 std::shared_ptr<ControllerGyroMapping> GyroMappingFactory::CreateGyroMappingFromConfig(uint8_t portIndex,
@@ -49,23 +49,23 @@ std::shared_ptr<ControllerGyroMapping> GyroMappingFactory::CreateGyroMappingFrom
     std::shared_ptr<ControllerGyroMapping> mapping = nullptr;
     for (auto [lusIndex, indexMapping] :
          Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-        auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
+        auto sdlInstanceIDMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(indexMapping);
 
-        if (sdlIndexMapping == nullptr) {
-            // this LUS index isn't mapped to an SDL index
+        if (sdlInstanceIDMapping == nullptr) {
+            // this LUS index isn't mapped to an SDL instance id
             continue;
         }
 
-        auto sdlIndex = sdlIndexMapping->GetSDLDeviceIndex();
+        auto sdlInstanceID = sdlInstanceIDMapping->GetSDLInstanceID();
 
-        if (!SDL_IsGamepad(sdlIndex)) {
+        if (!SDL_IsGamepad(sdlInstanceID)) {
             // this SDL device isn't a game controller
             continue;
         }
 
-        auto controller = SDL_OpenGamepad(sdlIndex);
+        auto controller = SDL_OpenGamepad(sdlInstanceID);
         if (SDL_GamepadHasSensor(controller, SDL_SENSOR_GYRO)) {
-            sdlControllersWithGyro[lusIndex] = SDL_OpenGamepad(sdlIndex);
+            sdlControllersWithGyro[lusIndex] = SDL_OpenGamepad(sdlInstanceID);
         } else {
             SDL_CloseGamepad(controller);
         }

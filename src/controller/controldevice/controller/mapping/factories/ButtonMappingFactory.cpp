@@ -8,7 +8,7 @@
 #include "controller/controldevice/controller/mapping/mouse/MouseWheelToButtonMapping.h"
 #include "controller/controldevice/controller/mapping/sdl/SDLButtonToButtonMapping.h"
 #include "controller/controldevice/controller/mapping/sdl/SDLAxisDirectionToButtonMapping.h"
-#include "controller/deviceindex/ShipDeviceIndexToSDLDeviceIndexMapping.h"
+#include "controller/deviceindex/ShipDeviceIndexToSDLInstanceIDMapping.h"
 #include "controller/controldevice/controller/mapping/keyboard/KeyboardScancodes.h"
 #include "controller/controldevice/controller/mapping/mouse/WheelHandler.h"
 
@@ -158,16 +158,16 @@ ButtonMappingFactory::CreateDefaultSDLButtonMappings(ShipDeviceIndex shipDeviceI
                                                      CONTROLLERBUTTONS_T bitmask) {
     std::vector<std::shared_ptr<ControllerButtonMapping>> mappings;
 
-    auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(
+    auto sdlInstanceIDMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(
         Context::GetInstance()
             ->GetControlDeck()
             ->GetDeviceIndexMappingManager()
             ->GetDeviceIndexMappingFromShipDeviceIndex(shipDeviceIndex));
-    if (sdlIndexMapping == nullptr) {
+    if (sdlInstanceIDMapping == nullptr) {
         return std::vector<std::shared_ptr<ControllerButtonMapping>>();
     }
 
-    bool isGameCube = sdlIndexMapping->GetSDLControllerName() == "Nintendo GameCube Controller";
+    bool isGameCube = sdlInstanceIDMapping->GetSDLControllerName() == "Nintendo GameCube Controller";
 
     switch (bitmask) {
         case BTN_A:
@@ -251,21 +251,21 @@ ButtonMappingFactory::CreateButtonMappingFromSDLInput(uint8_t portIndex, CONTROL
     std::shared_ptr<ControllerButtonMapping> mapping = nullptr;
     for (auto [lusIndex, indexMapping] :
          Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-        auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
+        auto sdlInstanceIDMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(indexMapping);
 
-        if (sdlIndexMapping == nullptr) {
-            // this LUS index isn't mapped to an SDL index
+        if (sdlInstanceIDMapping == nullptr) {
+            // this LUS index isn't mapped to an SDL instance id
             continue;
         }
 
-        auto sdlIndex = sdlIndexMapping->GetSDLDeviceIndex();
+        auto sdlInstanceID = sdlInstanceIDMapping->GetSDLInstanceID();
 
-        if (!SDL_IsGamepad(sdlIndex)) {
-            // this SDL device isn't a game controller
+        if (!SDL_IsGamepad(sdlInstanceID)) {
+            // this SDL device isn't a gamepad
             continue;
         }
 
-        sdlControllers[lusIndex] = SDL_OpenGamepad(sdlIndex);
+        sdlControllers[lusIndex] = SDL_OpenGamepad(sdlInstanceID);
     }
 
     for (auto [lusIndex, controller] : sdlControllers) {

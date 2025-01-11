@@ -4,7 +4,7 @@
 #include "utils/StringHelper.h"
 #include "libultraship/libultra/controller.h"
 #include "Context.h"
-#include "controller/deviceindex/ShipDeviceIndexToSDLDeviceIndexMapping.h"
+#include "controller/deviceindex/ShipDeviceIndexToSDLInstanceIDMapping.h"
 
 namespace Ship {
 std::shared_ptr<ControllerLEDMapping> LEDMappingFactory::CreateLEDMappingFromConfig(uint8_t portIndex, std::string id) {
@@ -47,25 +47,26 @@ std::shared_ptr<ControllerLEDMapping> LEDMappingFactory::CreateLEDMappingFromSDL
     std::shared_ptr<ControllerLEDMapping> mapping = nullptr;
     for (auto [lusIndex, indexMapping] :
          Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-        auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
+        auto sdlInstanceIDMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(indexMapping);
 
-        if (sdlIndexMapping == nullptr) {
-            // this LUS index isn't mapped to an SDL index
+        if (sdlInstanceIDMapping == nullptr) {
+            // this LUS index isn't mapped to an SDL instance id
             continue;
         }
 
-        auto sdlIndex = sdlIndexMapping->GetSDLDeviceIndex();
+        auto sdlInstanceID = sdlInstanceIDMapping->GetSDLInstanceID();
 
-        if (!SDL_IsGamepad(sdlIndex)) {
+        if (!SDL_IsGamepad(sdlInstanceID)) {
             // this SDL device isn't a game controller
             continue;
         }
 
-        auto controller = SDL_OpenGamepad(sdlIndex);
+        auto controller = SDL_OpenGamepad(sdlInstanceID);
         // todo: SDL_GameControllerHasLED() - replaced with SDL_PROP_GAMEPAD_CAP_RGB_LED_BOOLEAN
         // if (SDL_GameControllerHasLED(controller)) {
+        auto props = SDL_GetGamepadProperties(controller);
         if (false) {
-            sdlControllersWithLEDs[lusIndex] = SDL_OpenGamepad(sdlIndex);
+            sdlControllersWithLEDs[lusIndex] = SDL_OpenGamepad(sdlInstanceID);
         } else {
             SDL_CloseGamepad(controller);
         }

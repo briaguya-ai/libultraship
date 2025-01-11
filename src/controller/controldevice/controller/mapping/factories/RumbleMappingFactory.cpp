@@ -4,7 +4,7 @@
 #include "utils/StringHelper.h"
 #include "libultraship/libultra/controller.h"
 #include "Context.h"
-#include "controller/deviceindex/ShipDeviceIndexToSDLDeviceIndexMapping.h"
+#include "controller/deviceindex/ShipDeviceIndexToSDLInstanceIDMapping.h"
 
 namespace Ship {
 std::shared_ptr<ControllerRumbleMapping> RumbleMappingFactory::CreateRumbleMappingFromConfig(uint8_t portIndex,
@@ -46,12 +46,12 @@ std::shared_ptr<ControllerRumbleMapping> RumbleMappingFactory::CreateRumbleMappi
 
 std::vector<std::shared_ptr<ControllerRumbleMapping>>
 RumbleMappingFactory::CreateDefaultSDLRumbleMappings(ShipDeviceIndex shipDeviceIndex, uint8_t portIndex) {
-    auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(
+    auto sdlInstanceIDMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(
         Context::GetInstance()
             ->GetControlDeck()
             ->GetDeviceIndexMappingManager()
             ->GetDeviceIndexMappingFromShipDeviceIndex(shipDeviceIndex));
-    if (sdlIndexMapping == nullptr) {
+    if (sdlInstanceIDMapping == nullptr) {
         return std::vector<std::shared_ptr<ControllerRumbleMapping>>();
     }
 
@@ -67,27 +67,27 @@ std::shared_ptr<ControllerRumbleMapping> RumbleMappingFactory::CreateRumbleMappi
     std::shared_ptr<ControllerRumbleMapping> mapping = nullptr;
     for (auto [lusIndex, indexMapping] :
          Context::GetInstance()->GetControlDeck()->GetDeviceIndexMappingManager()->GetAllDeviceIndexMappings()) {
-        auto sdlIndexMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLDeviceIndexMapping>(indexMapping);
+        auto sdlInstanceIDMapping = std::dynamic_pointer_cast<ShipDeviceIndexToSDLInstanceIDMapping>(indexMapping);
 
-        if (sdlIndexMapping == nullptr) {
-            // this LUS index isn't mapped to an SDL index
+        if (sdlInstanceIDMapping == nullptr) {
+            // this LUS index isn't mapped to an SDL instance id
             continue;
         }
 
-        auto sdlIndex = sdlIndexMapping->GetSDLDeviceIndex();
+        auto sdlInstanceID = sdlInstanceIDMapping->GetSDLInstanceID();
 
-        if (!SDL_IsGamepad(sdlIndex)) {
+        if (!SDL_IsGamepad(sdlInstanceID)) {
             // this SDL device isn't a game controller
             continue;
         }
 
-        auto controller = SDL_OpenGamepad(sdlIndex);
+        auto controller = SDL_OpenGamepad(sdlInstanceID);
         // todo: SDL_GameControllerHasRumble() - replaced with SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN
         // bool hasRumble = SDL_GameControllerHasRumble(controller);
         bool hasRumble = false;
 
         if (hasRumble) {
-            sdlControllersWithRumble[lusIndex] = SDL_OpenGamepad(sdlIndex);
+            sdlControllersWithRumble[lusIndex] = SDL_OpenGamepad(sdlInstanceID);
         } else {
             SDL_CloseGamepad(controller);
         }
