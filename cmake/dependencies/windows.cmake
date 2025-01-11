@@ -21,7 +21,7 @@ target_sources(ImGui
 )
 
 find_package(SDL3 CONFIG REQUIRED)
-target_link_libraries(ImGui PUBLIC SDL3::SDL3 SDL3::SDL3main)
+target_link_libraries(ImGui PUBLIC SDL3::SDL3)
 
 find_package(GLEW REQUIRED)
 target_link_libraries(ImGui PUBLIC opengl32 GLEW::GLEW)
