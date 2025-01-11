@@ -44,7 +44,7 @@ void ShipDeviceIndexMappingManager::InitializeMappingsMultiplayer(std::vector<in
 }
 
 void ShipDeviceIndexMappingManager::InitializeSDLMappingsForPort(uint8_t n64port, int32_t sdlIndex) {
-    if (!SDL_IsGameController(sdlIndex)) {
+    if (!SDL_IsGamepad(sdlIndex)) {
         return;
     }
 
@@ -177,7 +177,7 @@ void ShipDeviceIndexMappingManager::InitializeMappingsSinglePlayer() {
 
     std::vector<int32_t> connectedSdlControllerIndices;
     for (auto i = 0; i < SDL_NumJoysticks(); i++) {
-        if (SDL_IsGameController(i)) {
+        if (SDL_IsGamepad(i)) {
             connectedSdlControllerIndices.push_back(i);
         }
     }
@@ -291,7 +291,7 @@ void ShipDeviceIndexMappingManager::HandlePhysicalDeviceConnect(int32_t sdlDevic
         return;
     }
 
-    if (!SDL_IsGameController(sdlDeviceIndex)) {
+    if (!SDL_IsGamepad(sdlDeviceIndex)) {
         return;
     }
 
