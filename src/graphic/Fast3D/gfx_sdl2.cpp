@@ -33,7 +33,8 @@
 #ifdef _WIN32
 #include <WTypesbase.h>
 #include <Windows.h>
-#include <SDL3/SDL_syswm.h>
+// https://wiki.libsdl.org/SDL3/README/migration#sdl_syswmh
+// This header has been removed.
 #endif
 
 #define GFX_BACKEND_NAME "SDL"
