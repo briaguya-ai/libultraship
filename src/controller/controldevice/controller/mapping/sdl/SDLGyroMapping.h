@@ -1,10 +1,9 @@
 #include "controller/controldevice/controller/mapping/ControllerGyroMapping.h"
-#include "SDLMapping.h"
 
 namespace Ship {
-class SDLGyroMapping final : public ControllerGyroMapping, public SDLMapping {
+class SDLGyroMapping final : public ControllerGyroMapping {
   public:
-    SDLGyroMapping(ShipDeviceIndex shipDeviceIndex, uint8_t portIndex, float sensitivity, float neutralPitch,
+    SDLGyroMapping(uint8_t portIndex, float sensitivity, float neutralPitch,
                    float neutralYaw, float neutralRoll);
     void UpdatePad(float& x, float& y) override;
     void SaveToConfig() override;

@@ -265,7 +265,7 @@ bool ControllerButton::ProcessMouseButtonEvent(bool isPressed, MouseBtn button) 
 }
 
 void ControllerButton::AddDefaultMappings(ShipDeviceIndex shipDeviceIndex) {
-    for (auto mapping : ButtonMappingFactory::CreateDefaultSDLButtonMappings(shipDeviceIndex, mPortIndex, mBitmask)) {
+    for (auto mapping : ButtonMappingFactory::CreateDefaultSDLButtonMappings(mPortIndex, mBitmask)) {
         AddButtonMapping(mapping);
     }
 

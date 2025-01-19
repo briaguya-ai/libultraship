@@ -1,10 +1,9 @@
 #include "controller/controldevice/controller/mapping/ControllerRumbleMapping.h"
-#include "SDLMapping.h"
 
 namespace Ship {
-class SDLRumbleMapping final : public ControllerRumbleMapping, public SDLMapping {
+class SDLRumbleMapping final : public ControllerRumbleMapping {
   public:
-    SDLRumbleMapping(ShipDeviceIndex shipDeviceIndex, uint8_t portIndex, uint8_t lowFrequencyIntensityPercentage,
+    SDLRumbleMapping(uint8_t portIndex, uint8_t lowFrequencyIntensityPercentage,
                      uint8_t highFrequencyIntensityPercentage);
 
     void StartRumble() override;

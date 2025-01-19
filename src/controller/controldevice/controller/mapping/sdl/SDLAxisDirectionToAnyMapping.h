@@ -1,12 +1,15 @@
 #pragma once
 
-#include "SDLMapping.h"
 #include "controller/controldevice/controller/mapping/ControllerInputMapping.h"
 
 namespace Ship {
-class SDLAxisDirectionToAnyMapping : virtual public ControllerInputMapping, public SDLMapping {
+
+enum Axis { X = 0, Y = 1 };
+enum AxisDirection { NEGATIVE = -1, POSITIVE = 1 };
+
+class SDLAxisDirectionToAnyMapping : virtual public ControllerInputMapping {
   public:
-    SDLAxisDirectionToAnyMapping(ShipDeviceIndex shipDeviceIndex, int32_t sdlControllerAxis, int32_t axisDirection);
+    SDLAxisDirectionToAnyMapping(int32_t sdlControllerAxis, int32_t axisDirection);
     ~SDLAxisDirectionToAnyMapping();
     std::string GetPhysicalInputName() override;
     std::string GetPhysicalDeviceName() override;

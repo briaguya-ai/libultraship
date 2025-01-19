@@ -4,12 +4,12 @@
 #include "utils/StringHelper.h"
 
 namespace Ship {
-SDLLEDMapping::SDLLEDMapping(ShipDeviceIndex shipDeviceIndex, uint8_t portIndex, uint8_t colorSource,
+SDLLEDMapping::SDLLEDMapping(uint8_t portIndex, uint8_t colorSource,
                              Color_RGB8 savedColor)
-    : ControllerLEDMapping(shipDeviceIndex, portIndex, colorSource, savedColor), SDLMapping(shipDeviceIndex) {
+    : ControllerLEDMapping(portIndex, colorSource, savedColor) {
 }
 
-void SDLLEDMapping::SetLEDColor(Color_RGB8 color) {
+void SDLLEDMapping::SetLEDColor(SDL_Joystick* gamepad, Color_RGB8 color) {
     if (!ControllerLoaded()) {
         return;
     }
@@ -26,7 +26,7 @@ void SDLLEDMapping::SetLEDColor(Color_RGB8 color) {
         color = mSavedColor;
     }
 
-    SDL_JoystickSetLED(SDL_GameControllerGetJoystick(mController), color.r, color.g, color.b);
+    SDL_JoystickSetLED(gamepad, color.r, color.g, color.b);
 }
 
 std::string SDLLEDMapping::GetLEDMappingId() {

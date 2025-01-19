@@ -26,10 +26,7 @@ void InputEditorWindow::InitElement() {
     mDeviceIndexVisiblity.clear();
     mDeviceIndexVisiblity[ShipDeviceIndex::Keyboard] = true;
     mDeviceIndexVisiblity[ShipDeviceIndex::Mouse] = true;
-    mDeviceIndexVisiblity[ShipDeviceIndex::Blue] = true;
-    for (auto index = 1; index < ShipDeviceIndex::Max; index++) {
-        mDeviceIndexVisiblity[static_cast<ShipDeviceIndex>(index)] = false;
-    }
+    mDeviceIndexVisiblity[ShipDeviceIndex::SDLGamepad] = true;
 }
 
 #define INPUT_EDITOR_WINDOW_GAME_INPUT_BLOCK_ID 95237929
@@ -181,21 +178,9 @@ void InputEditorWindow::GetButtonColorsForShipDeviceIndex(ShipDeviceIndex lusInd
             buttonColor = BUTTON_COLOR_MOUSE_BEIGE;
             buttonHoveredColor = BUTTON_COLOR_MOUSE_BEIGE_HOVERED;
             break;
-        case ShipDeviceIndex::Blue:
+        case ShipDeviceIndex::SDLGamepad:
             buttonColor = BUTTON_COLOR_GAMEPAD_BLUE;
             buttonHoveredColor = BUTTON_COLOR_GAMEPAD_BLUE_HOVERED;
-            break;
-        case ShipDeviceIndex::Red:
-            buttonColor = BUTTON_COLOR_GAMEPAD_RED;
-            buttonHoveredColor = BUTTON_COLOR_GAMEPAD_RED_HOVERED;
-            break;
-        case ShipDeviceIndex::Orange:
-            buttonColor = BUTTON_COLOR_GAMEPAD_ORANGE;
-            buttonHoveredColor = BUTTON_COLOR_GAMEPAD_ORANGE_HOVERED;
-            break;
-        case ShipDeviceIndex::Green:
-            buttonColor = BUTTON_COLOR_GAMEPAD_GREEN;
-            buttonHoveredColor = BUTTON_COLOR_GAMEPAD_GREEN_HOVERED;
             break;
         default:
             buttonColor = BUTTON_COLOR_GAMEPAD_PURPLE;
