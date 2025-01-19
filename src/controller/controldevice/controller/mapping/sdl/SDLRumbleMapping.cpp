@@ -67,10 +67,6 @@ void SDLRumbleMapping::EraseFromConfig() {
 }
 
 std::string SDLRumbleMapping::GetPhysicalDeviceName() {
-    return GetSDLDeviceName();
-}
-
-bool SDLRumbleMapping::PhysicalDeviceIsConnected() {
-    return ControllerLoaded();
+    return "SDL Gamepad";
 }
 } // namespace Ship

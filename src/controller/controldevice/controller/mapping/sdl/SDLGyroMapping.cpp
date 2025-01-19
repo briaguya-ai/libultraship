@@ -78,10 +78,6 @@ void SDLGyroMapping::EraseFromConfig() {
 }
 
 std::string SDLGyroMapping::GetPhysicalDeviceName() {
-    return GetSDLDeviceName();
-}
-
-bool SDLGyroMapping::PhysicalDeviceIsConnected() {
-    return ControllerLoaded();
+    return "SDL Gamepad";
 }
 } // namespace Ship

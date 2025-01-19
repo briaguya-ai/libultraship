@@ -12,7 +12,6 @@ class SDLGyroMapping final : public ControllerGyroMapping, public SDLMapping {
     std::string GetGyroMappingId() override;
 
     std::string GetPhysicalDeviceName() override;
-    bool PhysicalDeviceIsConnected() override;
 
   private:
     float mNeutralPitch;

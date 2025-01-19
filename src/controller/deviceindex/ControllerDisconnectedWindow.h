@@ -15,18 +15,10 @@ class ControllerDisconnectedWindow : public GuiWindow {
   public:
     using GuiWindow::GuiWindow;
     ~ControllerDisconnectedWindow();
-    void SetPortIndexOfDisconnectedController(uint8_t portIndex);
 
   protected:
     void InitElement() override;
     void DrawElement() override;
     void UpdateElement() override;
-
-  private:
-    void DrawUnknownOrMultipleControllersDisconnected();
-    void DrawKnownControllerDisconnected();
-    int32_t GetSDLIndexFromSDLInput();
-
-    uint8_t mPortIndexOfDisconnectedController;
 };
 } // namespace Ship

@@ -10,7 +10,6 @@ class SDLAxisDirectionToAnyMapping : virtual public ControllerInputMapping, publ
     ~SDLAxisDirectionToAnyMapping();
     std::string GetPhysicalInputName() override;
     std::string GetPhysicalDeviceName() override;
-    bool PhysicalDeviceIsConnected() override;
     bool AxisIsTrigger();
     bool AxisIsStick();
 

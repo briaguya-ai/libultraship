@@ -13,6 +13,5 @@ class SDLLEDMapping final : public ControllerLEDMapping, public SDLMapping {
     void EraseFromConfig() override;
 
     std::string GetPhysicalDeviceName() override;
-    bool PhysicalDeviceIsConnected() override;
 };
 } // namespace Ship

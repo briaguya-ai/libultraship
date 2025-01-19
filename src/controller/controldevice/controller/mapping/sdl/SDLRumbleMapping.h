@@ -17,7 +17,6 @@ class SDLRumbleMapping final : public ControllerRumbleMapping, public SDLMapping
     void EraseFromConfig() override;
 
     std::string GetPhysicalDeviceName() override;
-    bool PhysicalDeviceIsConnected() override;
 
   private:
     uint16_t mLowFrequencyIntensity;

@@ -14,26 +14,5 @@ class SDLMapping : public ControllerMapping {
   public:
     SDLMapping();
     ~SDLMapping();
-    int32_t GetJoystickInstanceId();
-    int32_t GetCurrentSDLDeviceIndex();
-    bool CloseController();
-    bool ControllerLoaded(bool closeIfDisconnected = false);
-
-  protected:
-    SDL_GameControllerType GetSDLControllerType();
-    uint16_t GetSDLControllerVendorId();
-    uint16_t GetSDLControllerProductId();
-    bool UsesPlaystationLayout();
-    bool UsesSwitchLayout();
-    bool UsesXboxLayout();
-    bool UsesGameCubeLayout();
-    std::string GetSDLDeviceName();
-    int32_t GetSDLDeviceIndex();
-
-    SDL_GameController* mController;
-
-  private:
-    bool OpenController();
-    std::string GetSDLControllerName();
 };
 } // namespace Ship
