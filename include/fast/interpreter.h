@@ -156,14 +156,36 @@ struct GfxExecStack {
     // stack for OpenDisp/CloseDisps
     std::vector<CodeDisp> disp_stack{};
 
+    // DIAGNOSTIC (temporary): mirrors gfx_path, recording which dlist each frame is executing and,
+    // when it was resolved from a resource, the bounds of its instruction buffer.
+    struct DlFrame {
+        const char* name;
+        const F3DGfx* start;
+        const F3DGfx* end; // null when the size isn't known
+        bool overrunReported;
+        // The command that entered this frame, captured so anonymous frames (plain G_DL, hash, index,
+        // branch_z) can still be traced back to whatever jumped here.
+        const F3DGfx* caller;
+        uint8_t callerOpcode;
+        uintptr_t callerW1;
+    };
+    std::vector<DlFrame> dbg_frames{};
+    const DlFrame* currentFrame() const;
+    const char* currentName() const;
+    // Logs once per frame if cmd has walked past the end of the frame's instruction buffer.
+    void checkOverrun(const F3DGfx* cmd);
+    // Dumps the whole frame stack. Fires once per run, on the first sign of executing garbage.
+    void dumpFrames(const char* why, const F3DGfx* cmd);
+
     void start(F3DGfx* dlist);
     void stop();
     F3DGfx*& currCmd();
     void openDisp(const char* file, int line);
     void closeDisp();
     const std::vector<CodeDisp>& getDisp() const;
-    void branch(F3DGfx* caller);
-    void call(F3DGfx* caller, F3DGfx* callee);
+    void branch(F3DGfx* caller, const char* name = nullptr, const F3DGfx* start = nullptr,
+                const F3DGfx* end = nullptr);
+    void call(F3DGfx* caller, F3DGfx* callee, const char* name = nullptr, const F3DGfx* end = nullptr);
     F3DGfx* ret();
 };
 

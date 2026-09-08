@@ -19,6 +19,7 @@
 #include <list>
 #include <stack>
 #include "fast/resource/type/Light.h"
+#include "fast/resource/ResourceType.h"
 
 #ifndef _LANGUAGE_C
 #define _LANGUAGE_C
@@ -2376,6 +2377,90 @@ void Interpreter::GfxSpMovememF3d(uint8_t index, uint8_t offset, const void* dat
     }
 }
 
+// ===== DIAGNOSTIC (temporary): segment provenance tracing ==============================
+// Goal: show what each segment holds at the moment a segmented G_DL reads it, and how long
+// ago it was bound. Comparing a mod-on and mod-off run of the same scene shows whether the
+// read moved relative to the binds.
+
+static uint64_t sDbgFrame = 0;
+static uint64_t sDbgStep = 0;
+
+struct DbgSegBind {
+    uintptr_t value;
+    uint64_t frame;
+    uint64_t step;
+    bool everBound;
+};
+static DbgSegBind sDbgSegBinds[MAX_SEGMENT_POINTERS] = {};
+
+// Copy printable characters out of a suspected string, bounded. Best effort: the caller has
+// already established the address is plausibly readable.
+static std::string dbg_peek_string(uintptr_t addr, size_t max) {
+    std::string out;
+    const char* p = (const char*)addr;
+    for (size_t i = 0; i < max && p[i] != '\0'; i++) {
+        out += (p[i] >= 0x20 && p[i] < 0x7F) ? p[i] : '.';
+    }
+    return out;
+}
+
+// Best-effort description of what an address actually points at.
+// NOTE: this dereferences, so it carries the same risk the existing G_SETTIMG path does.
+static std::string dbg_describe_addr(uintptr_t addr) {
+    if (addr == 0) {
+        return "null";
+    }
+
+    std::string out = fmt::format("0x{:X} align={}", addr, (unsigned)(addr % alignof(F3DGfx)));
+
+#ifdef _WIN32
+    HMODULE module = nullptr;
+    bool inModule = GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                       reinterpret_cast<LPCSTR>(addr), &module) != 0;
+    out += inModule ? " IN-MODULE" : " not-in-module(heap/anon)";
+#else
+    Dl_info info;
+    if (dladdr(reinterpret_cast<void*>(addr), &info) != 0) {
+        out += fmt::format(" IN-MODULE({}{}{})", info.dli_fname != nullptr ? info.dli_fname : "?",
+                           info.dli_sname != nullptr ? " sym=" : "", info.dli_sname != nullptr ? info.dli_sname : "");
+    } else {
+        out += " not-in-module(heap/anon)";
+    }
+#endif
+
+    if (addr > 0x10000 && addr < 0x0000FFFFFFFFFFFFull && gfx_check_image_signature((const char*)addr) == 1) {
+        out += fmt::format(" OTR-PATH=\"{}\"", dbg_peek_string(addr, 96));
+    }
+    return out;
+}
+
+static void dbg_record_seg_bind(int segNumber, uintptr_t data, const char* via) {
+    if (segNumber < 0 || segNumber >= (int)MAX_SEGMENT_POINTERS) {
+        // The real store below/above this call is NOT bounds checked -- flagging separately.
+        static std::set<int> reportedOob;
+        if (reportedOob.insert(segNumber).second) {
+            SPDLOG_CRITICAL("[SEGBIND] OUT OF RANGE segment {} via {} (table has {} entries) -- this is an "
+                            "out-of-bounds write into mSegmentPointers",
+                            segNumber, via, (int)MAX_SEGMENT_POINTERS);
+        }
+        return;
+    }
+
+    // Only report actual changes. The same value gets rebound to the same segment every frame, and
+    // that repetition was drowning the log. frame/step therefore mean "holding this value since".
+    if (sDbgSegBinds[segNumber].everBound && sDbgSegBinds[segNumber].value == data) {
+        return;
+    }
+
+    uintptr_t prev = sDbgSegBinds[segNumber].everBound ? sDbgSegBinds[segNumber].value : 0;
+    bool hadPrev = sDbgSegBinds[segNumber].everBound;
+    sDbgSegBinds[segNumber] = { data, sDbgFrame, sDbgStep, true };
+
+    SPDLOG_CRITICAL("[SEGBIND] f={} s={} seg=0x{:X} via={} -> {}{}", sDbgFrame, sDbgStep, (unsigned)segNumber, via,
+                    dbg_describe_addr(data), hadPrev ? fmt::format("  (was 0x{:X})", prev) : "");
+}
+// ===== end diagnostic ==================================================================
+
 void Interpreter::GfxSpMovewordF3dex2(uint8_t index, uint16_t offset, uintptr_t data) {
     switch (index) {
         case G_MW_NUMLIGHT:
@@ -2389,13 +2474,16 @@ void Interpreter::GfxSpMovewordF3dex2(uint8_t index, uint16_t offset, uintptr_t 
         case G_MW_SEGMENT: {
             int segNumber = offset / 4;
             mSegmentPointers[segNumber] = data;
+            dbg_record_seg_bind(segNumber, data, "F3DEX2 G_MW_SEGMENT");
         } break;
         case G_MW_SEGMENT_INTERP: {
             int segNumber = offset % 16;
             int segIndex = offset / 16;
 
-            if (segIndex == mInterpolationIndex)
+            if (segIndex == mInterpolationIndex) {
                 mSegmentPointers[segNumber] = data;
+                dbg_record_seg_bind(segNumber, data, "F3DEX2 G_MW_SEGMENT_INTERP");
+            }
         } break;
     }
 }
@@ -2415,13 +2503,16 @@ void Interpreter::GfxSpMovewordF3d(uint8_t index, uint16_t offset, uintptr_t dat
         case G_MW_SEGMENT: {
             int segNumber = offset / 4;
             mSegmentPointers[segNumber] = data;
+            dbg_record_seg_bind(segNumber, data, "F3D G_MW_SEGMENT");
         } break;
         case G_MW_SEGMENT_INTERP: {
             int segNumber = offset % 16;
             int segIndex = offset / 16;
 
-            if (segIndex == mInterpolationIndex)
+            if (segIndex == mInterpolationIndex) {
                 mSegmentPointers[segNumber] = data;
+                dbg_record_seg_bind(segNumber, data, "F3D G_MW_SEGMENT_INTERP");
+            }
         } break;
     }
 }
@@ -3211,6 +3302,21 @@ void Interpreter::Gfxs2dexRecyCopy(F3DuObjSprite* spr) {
                           (float)(1 << 10) * realSW, (float)(1 << 10) * realSH, false);
 }
 
+// DIAGNOSTIC (temporary): report each distinct unresolvable segmented address once, so a broken mod
+// produces a handful of readable lines instead of one per drawn frame.
+static void dbg_report_bad_seg(uintptr_t w1, const char* reason) {
+    static std::set<uintptr_t> reported;
+    if (!reported.insert(w1).second) {
+        return;
+    }
+
+    const F3DGfx* cmd = g_exec_stack.cmd_stack.empty() ? nullptr : g_exec_stack.cmd_stack.top();
+    SPDLOG_CRITICAL("SegAddr: {} for 0x{:X} (seg 0x{:X}, offset 0x{:X}) while executing dlist '{}' "
+                    "at {} (opcode 0x{:02X})",
+                    reason, w1, (uint32_t)(w1 >> 24), (uint32_t)(w1 & 0x00FFFFFE), g_exec_stack.currentName(),
+                    (const void*)cmd, cmd != nullptr ? (uint8_t)(cmd->words.w0 >> 24) : 0);
+}
+
 void* Interpreter::SegAddr(uintptr_t w1) {
     // Segmented?
     if (w1 & 1) {
@@ -3218,9 +3324,19 @@ void* Interpreter::SegAddr(uintptr_t w1) {
 
         uint32_t offset = w1 & 0x00FFFFFE;
 
+        // DIAGNOSTIC: segNum is derived from the top byte and never bounded, so anything that isn't a
+        // real segmented address indexes off the end of mSegmentPointers.
+        if (segNum >= MAX_SEGMENT_POINTERS) {
+            dbg_report_bad_seg(w1, "segment index out of range");
+            return (void*)w1;
+        }
+
         if (mSegmentPointers[segNum] != 0) {
             return (void*)(mSegmentPointers[segNum] + offset);
         } else {
+            // DIAGNOSTIC: bit 0 says this is definitely a segmented address, but the segment was never
+            // bound, so the raw N64 address is handed back and callers treat it as a host pointer.
+            dbg_report_bad_seg(w1, "segment not bound");
             return (void*)w1;
         }
     } else {
@@ -3232,9 +3348,11 @@ void* Interpreter::SegAddr(uintptr_t w1) {
 #define C1(pos, width) ((cmd->words.w1 >> (pos)) & ((1U << width) - 1))
 
 void GfxExecStack::start(F3DGfx* dlist) {
+    sDbgFrame++; // DIAGNOSTIC: one playback == one frame
     while (!cmd_stack.empty())
         cmd_stack.pop();
     gfx_path.clear();
+    dbg_frames.clear();
     cmd_stack.push(dlist);
     disp_stack.clear();
 }
@@ -3243,6 +3361,54 @@ void GfxExecStack::stop() {
     while (!cmd_stack.empty())
         cmd_stack.pop();
     gfx_path.clear();
+    dbg_frames.clear();
+}
+
+const GfxExecStack::DlFrame* GfxExecStack::currentFrame() const {
+    return dbg_frames.empty() ? nullptr : &dbg_frames.back();
+}
+
+const char* GfxExecStack::currentName() const {
+    for (auto it = dbg_frames.rbegin(); it != dbg_frames.rend(); ++it) {
+        if (it->name != nullptr) {
+            return it->name;
+        }
+    }
+    return "<root>";
+}
+
+void GfxExecStack::dumpFrames(const char* why, const F3DGfx* cmd) {
+    static bool dumped = false;
+    if (dumped) {
+        return;
+    }
+    dumped = true;
+
+    SPDLOG_CRITICAL("=== dlist frame stack ({}) -- executing {} ===", why, dbg_describe_addr((uintptr_t)cmd));
+    for (size_t i = 0; i < dbg_frames.size(); i++) {
+        const DlFrame& f = dbg_frames[i];
+        SPDLOG_CRITICAL("  [{}] {} start={} end={} <- entered by opcode 0x{:02X} at {} (w1 0x{:X})", i,
+                        f.name != nullptr ? f.name : "<anonymous>", (const void*)f.start, (const void*)f.end,
+                        f.callerOpcode, (const void*)f.caller, f.callerW1);
+    }
+    SPDLOG_CRITICAL("=== end frame stack ({} frames, cmd_stack depth {}) ===", dbg_frames.size(), cmd_stack.size());
+}
+
+void GfxExecStack::checkOverrun(const F3DGfx* cmd) {
+    if (dbg_frames.empty()) {
+        return;
+    }
+
+    DlFrame& frame = dbg_frames.back();
+    if (frame.end == nullptr || frame.overrunReported || cmd < frame.end) {
+        return;
+    }
+
+    frame.overrunReported = true;
+    SPDLOG_CRITICAL("Execution ran past the end of dlist '{}' ({} commands, {} to {}) -- now at {}. "
+                    "Missing G_ENDDL?",
+                    frame.name != nullptr ? frame.name : "<unknown>", (size_t)(frame.end - frame.start),
+                    (const void*)frame.start, (const void*)frame.end, (const void*)cmd);
 }
 
 F3DGfx*& GfxExecStack::currCmd() {
@@ -3259,18 +3425,22 @@ const std::vector<GfxExecStack::CodeDisp>& GfxExecStack::getDisp() const {
     return disp_stack;
 }
 
-void GfxExecStack::branch(F3DGfx* caller) {
+void GfxExecStack::branch(F3DGfx* caller, const char* name, const F3DGfx* start, const F3DGfx* end) {
     F3DGfx* old = cmd_stack.top();
     cmd_stack.pop();
     cmd_stack.push(nullptr);
     cmd_stack.push(old);
 
     gfx_path.push_back(caller);
+    dbg_frames.push_back({ name, start, end, false, caller, (uint8_t)(caller->words.w0 >> 24),
+                           (uintptr_t)caller->words.w1 });
 }
 
-void GfxExecStack::call(F3DGfx* caller, F3DGfx* callee) {
+void GfxExecStack::call(F3DGfx* caller, F3DGfx* callee, const char* name, const F3DGfx* end) {
     cmd_stack.push(callee);
     gfx_path.push_back(caller);
+    dbg_frames.push_back({ name, callee, end, false, caller, (uint8_t)(caller->words.w0 >> 24),
+                           (uintptr_t)caller->words.w1 });
 }
 
 F3DGfx* GfxExecStack::ret() {
@@ -3280,11 +3450,17 @@ F3DGfx* GfxExecStack::ret() {
     if (!gfx_path.empty()) {
         gfx_path.pop_back();
     }
+    if (!dbg_frames.empty()) {
+        dbg_frames.pop_back();
+    }
 
     while (cmd_stack.size() > 0 && cmd_stack.top() == nullptr) {
         cmd_stack.pop();
         if (!gfx_path.empty()) {
             gfx_path.pop_back();
+        }
+        if (!dbg_frames.empty()) {
+            dbg_frames.pop_back();
         }
     }
     return cmd;
@@ -3674,15 +3850,33 @@ bool gfx_vtx_otr_filepath_handler_custom(F3DGfx** cmd0) {
 bool gfx_dl_otr_filepath_handler_custom(F3DGfx** cmd0) {
     F3DGfx* cmd = *cmd0;
     char* fileName = (char*)cmd->words.w1;
-    F3DGfx* nDL =
-        (F3DGfx*)Ship::Context::GetRawInstance()->GetResourceManager()->GetResourceRawPointer((const char*)fileName);
+    // DIAGNOSTIC: resolve through the resource rather than the raw pointer so we can report its type
+    // and bounds. GetResourceRawPointer(name) does exactly this internally, so no extra work.
+    auto resource = Ship::Context::GetRawInstance()->GetResourceManager()->LoadResource(fileName);
+    F3DGfx* nDL = (F3DGfx*)Ship::Context::GetRawInstance()->GetResourceManager()->GetResourceRawPointer(resource);
+
+    const F3DGfx* nDLEnd = nullptr;
+    if (resource != nullptr) {
+        nDLEnd = (const F3DGfx*)((uintptr_t)nDL + resource->GetPointerSize());
+
+        // DIAGNOSTIC: nothing checks that the named resource is actually a dlist before jumping to it.
+        uint32_t type = resource->GetInitData()->Type;
+        if (type != (uint32_t)ResourceType::DisplayList) {
+            SPDLOG_CRITICAL("G_DL_OTR_FILEPATH: '{}' is resource type 0x{:X}, not a DisplayList -- "
+                            "about to execute it anyway (from dlist '{}')",
+                            fileName, type, g_exec_stack.currentName());
+        }
+    } else {
+        SPDLOG_CRITICAL("G_DL_OTR_FILEPATH: '{}' did not resolve (from dlist '{}')", fileName,
+                        g_exec_stack.currentName());
+    }
 
     if (C0(16, 1) == 0 && nDL != nullptr) {
-        g_exec_stack.call(*cmd0, nDL);
+        g_exec_stack.call(*cmd0, nDL, fileName, nDLEnd);
     } else {
         if (nDL != nullptr) {
             (*cmd0) = nDL;
-            g_exec_stack.branch(cmd);
+            g_exec_stack.branch(cmd, fileName, nDL, nDLEnd);
             return true; // shortcut cmd increment
         } else {
             assert(0 && "???");
@@ -3707,6 +3901,29 @@ bool gfx_dl_handler_common(F3DGfx** cmd0) {
     Interpreter* gfx = mInstance.lock().get();
     F3DGfx* cmd = *cmd0;
     F3DGfx* subGFX = (F3DGfx*)gfx->SegAddr(cmd->words.w1);
+
+    // DIAGNOSTIC: trace every segmented G_DL read -- what the segment held at this instant, and how
+    // long ago it was bound. This is the line to diff between a mod-on and a mod-off run.
+    if (cmd->words.w1 & 1) {
+        uintptr_t w1 = (uintptr_t)cmd->words.w1;
+        uintptr_t target = (uintptr_t)subGFX;
+        uint32_t segNum = (uint32_t)(w1 >> 24);
+        DbgSegBind bind = (segNum < MAX_SEGMENT_POINTERS) ? sDbgSegBinds[segNum] : DbgSegBind{};
+
+        // Cheap checks first; dbg_describe_addr calls dladdr, so only run it if we are going to log.
+        bool unresolved = target == w1;
+        bool misaligned = (target % alignof(F3DGfx)) != 0;
+        bool isOtrPath = !unresolved && target > 0x10000 && target < 0x0000FFFFFFFFFFFFull &&
+                         gfx_check_image_signature((const char*)target) == 1;
+        bool suspicious = unresolved || misaligned || isOtrPath || !bind.everBound;
+
+        SPDLOG_CRITICAL("[SEGDL]{} f={} s={} seg=0x{:X} w1=0x{:X} -> {} | segment bound {} (f={} s={}, {} steps "
+                        "ago) | caller dlist '{}'",
+                        suspicious ? " SUSPICIOUS" : "", sDbgFrame, sDbgStep, segNum, w1, dbg_describe_addr(target),
+                        bind.everBound ? "yes" : "NEVER", bind.frame, bind.step,
+                        bind.everBound ? (sDbgStep - bind.step) : 0, g_exec_stack.currentName());
+    }
+
     if (C0(16, 1) == 0) {
         // Push return address
         if (subGFX != nullptr) {
@@ -3714,7 +3931,7 @@ bool gfx_dl_handler_common(F3DGfx** cmd0) {
         }
     } else {
         (*cmd0) = subGFX;
-        g_exec_stack.branch(cmd);
+        g_exec_stack.branch(cmd, nullptr, subGFX);
         return true; // shortcut cmd increment
     }
     return false;
@@ -3728,10 +3945,13 @@ bool gfx_dl_otr_hash_handler_custom(F3DGfx** cmd0) {
 
         uint64_t hash = ((uint64_t)(*cmd0)->words.w0 << 32) + (*cmd0)->words.w1;
 
-        F3DGfx* gfx = (F3DGfx*)Ship::Context::GetRawInstance()->GetResourceManager()->GetResourceRawPointer(hash);
+        // DIAGNOSTIC: go through the resource so the frame can be named and bounded like the filepath path.
+        auto resource = Ship::Context::GetRawInstance()->GetResourceManager()->LoadResource(hash);
+        F3DGfx* gfx = (F3DGfx*)Ship::Context::GetRawInstance()->GetResourceManager()->GetResourceRawPointer(resource);
 
         if (gfx != 0) {
-            g_exec_stack.call(cmd, gfx);
+            g_exec_stack.call(cmd, gfx, resource->GetInitData()->Path.c_str(),
+                              (const F3DGfx*)((uintptr_t)gfx + resource->GetPointerSize()));
         }
     } else {
         Interpreter* gfx = mInstance.lock().get();
@@ -3752,6 +3972,16 @@ bool gfx_dl_index_handler(F3DGfx** cmd0) {
     uintptr_t segAddr = (segNum << 24) | (index * sizeof(F3DGfx)) + 1;
 
     F3DGfx* subGFX = (F3DGfx*)gfx->SegAddr(segAddr);
+
+    // DIAGNOSTIC: report every distinct G_DL_INDEX target; like G_DL there is no bound to record here.
+    {
+        static std::set<uintptr_t> reportedIndexSegs;
+        if (reportedIndexSegs.insert(segAddr).second) {
+            SPDLOG_CRITICAL("G_DL_INDEX seg 0x{:X} index {} -> addr 0x{:X} -> {} from dlist '{}'", (uint32_t)segNum,
+                            index, (uintptr_t)segAddr, (const void*)subGFX, g_exec_stack.currentName());
+        }
+    }
+
     if (C0(16, 1) == 0) {
         // Push return address
         if (subGFX != nullptr) {
@@ -3759,7 +3989,7 @@ bool gfx_dl_index_handler(F3DGfx** cmd0) {
         }
     } else {
         (*cmd0) = subGFX;
-        g_exec_stack.branch(cmd);
+        g_exec_stack.branch(cmd, nullptr, subGFX);
         return true; // shortcut cmd increment
     }
     return false;
@@ -3786,11 +4016,14 @@ bool gfx_branch_z_otr_handler_f3dex2(F3DGfx** cmd0) {
         (gfx->mRsp->extra_geometry_mode & G_EX_ALWAYS_EXECUTE_BRANCH) != 0) {
         uint64_t hash = ((uint64_t)(*cmd0)->words.w0 << 32) + (*cmd0)->words.w1;
 
-        F3DGfx* gfx = (F3DGfx*)Ship::Context::GetRawInstance()->GetResourceManager()->GetResourceRawPointer(hash);
+        // DIAGNOSTIC: go through the resource so the frame can be named and bounded.
+        auto resource = Ship::Context::GetRawInstance()->GetResourceManager()->LoadResource(hash);
+        F3DGfx* gfx = (F3DGfx*)Ship::Context::GetRawInstance()->GetResourceManager()->GetResourceRawPointer(resource);
 
         if (gfx != 0) {
             (*cmd0) = gfx;
-            g_exec_stack.branch(cmd);
+            g_exec_stack.branch(cmd, resource->GetInitData()->Path.c_str(), gfx,
+                                (const F3DGfx*)((uintptr_t)gfx + resource->GetPointerSize()));
             return true; // shortcut cmd increment
         }
     }
@@ -4865,6 +5098,11 @@ static void gfx_step() {
     auto cmd0 = cmd;
     int8_t opcode = (int8_t)(cmd->words.w0 >> 24);
 
+    // DIAGNOSTIC: nothing bounds execution to the dlist's instruction buffer -- the only stop condition
+    // is hitting a G_ENDDL byte. Report the moment we walk past the end.
+    sDbgStep++;
+    g_exec_stack.checkOverrun(cmd);
+
 #ifdef USE_GBI_TRACE
     if (cmd->words.trace.valid &&
         Ship::Context::GetRawInstance()->GetConsoleVariables()->GetInteger("gEnableGFXTrace", 0)) {
@@ -4915,11 +5153,18 @@ static void gfx_step() {
                 return;
             }
         } else {
-            SPDLOG_CRITICAL("Unhandled OP code: 0x{:X}, for loaded ucode: {}", (uint8_t)opcode,
-                            (uint32_t)ucode_handler_index);
+            g_exec_stack.dumpFrames("unhandled opcode", cmd);
+            SPDLOG_CRITICAL("Unhandled OP code: 0x{:X}, for loaded ucode: {} -- at {} (w0 0x{:08X}, w1 0x{:08X}) "
+                            "in dlist '{}', depth {}",
+                            (uint8_t)opcode, (uint32_t)ucode_handler_index, (const void*)cmd, (uint32_t)cmd->words.w0,
+                            (uint32_t)cmd->words.w1, g_exec_stack.currentName(), g_exec_stack.cmd_stack.size());
         }
     } else {
-        SPDLOG_CRITICAL("Unhandled OP code: 0x{:X}, invalid ucode: {}", (uint8_t)opcode, (uint32_t)ucode_handler_index);
+        g_exec_stack.dumpFrames("unhandled opcode / invalid ucode", cmd);
+        SPDLOG_CRITICAL("Unhandled OP code: 0x{:X}, invalid ucode: {} -- at {} (w0 0x{:08X}, w1 0x{:08X}) "
+                        "in dlist '{}', depth {}",
+                        (uint8_t)opcode, (uint32_t)ucode_handler_index, (const void*)cmd, (uint32_t)cmd->words.w0,
+                        (uint32_t)cmd->words.w1, g_exec_stack.currentName(), g_exec_stack.cmd_stack.size());
     }
 
     ++cmd;
